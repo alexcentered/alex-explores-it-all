@@ -1,0 +1,597 @@
+/* ========================================
+   VARIABLES & RESET
+   ======================================== */
+
+:root {
+  /* Colors - NO BLUE anywhere */
+  --color-bg: #0f0f0f;
+  --color-bg-elevated: #1a1a1a;
+  --color-bg-card: #252525;
+  --color-text: #e8e8e8;
+  --color-text-dim: #a8a8a8;
+  --color-text-subtle: #707070;
+  --color-accent: #d4c5b0; /* warm neutral accent */
+  --color-accent-dim: #8a7f6f;
+  --color-border: #3a3a3a;
+  
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  
+  /* Spacing */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+  --space-2xl: 6rem;
+  
+  /* Layout */
+  --container-width: 1100px;
+  --border-radius: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-text);
+}
+
+a:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   LAYOUT
+   ======================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.section {
+  padding: var(--space-2xl) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.section-title {
+  margin-bottom: var(--space-lg);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.subsection-title {
+  margin-bottom: var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.logo {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.main-nav {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.main-nav a {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+}
+
+.main-nav a:hover {
+  color: var(--color-text);
+}
+
+/* ========================================
+   HERO
+   ======================================== */
+
+.hero {
+  padding: var(--space-2xl) 0 var(--space-xl) 0;
+}
+
+.hero-tagline {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-sm);
+}
+
+.hero-headline {
+  font-size: 2.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-md);
+  max-width: 900px;
+}
+
+.hero-supporting {
+  font-size: 1.1875rem;
+  color: var(--color-text-dim);
+  margin-bottom: var(--space-lg);
+  max-width: 700px;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.employer-note {
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  margin-top: var(--space-xl);
+  max-width: 700px;
+}
+
+.employer-note p {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.btn-primary:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-dim);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  border-color: var(--color-accent-dim);
+}
+
+.btn:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   SERVICES
+   ======================================== */
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.service-card {
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+}
+
+.service-card h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: var(--space-xs);
+  color: var(--color-text);
+}
+
+.service-card p {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+  line-height: 1.65;
+}
+
+.rates-note {
+  text-align: center;
+  color: var(--color-text-subtle);
+  font-size: 0.875rem;
+  margin-top: var(--space-md);
+}
+
+/* ========================================
+   PRINCIPLES
+   ======================================== */
+
+.principles {
+  background: var(--color-bg-elevated);
+}
+
+.principles-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-md);
+}
+
+.principles-list li {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-card);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 4px;
+  font-size: 0.9375rem;
+}
+
+/* ========================================
+   OUTCOMES
+   ======================================== */
+
+.outcomes-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.outcomes-list li {
+  padding: var(--space-sm) 0;
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--color-border);
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+}
+
+.outcomes-list li:hover {
+  border-left-color: var(--color-accent);
+}
+
+/* ========================================
+   BACKGROUND
+   ======================================== */
+
+.background {
+  background: var(--color-bg-elevated);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-years {
+  font-size: 0.875rem;
+  color: var(--color-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-company {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.timeline-title {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+}
+
+.timeline-description {
+  font-size: 0.875rem;
+  color: var(--color-text-subtle);
+}
+
+/* Skills */
+.skills {
+  margin-bottom: var(--space-xl);
+}
+
+.skills-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.skill-chip {
+  padding: 0.4rem 0.75rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  color: var(--color-text-dim);
+}
+
+/* Credentials */
+.credentials {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.resume-note {
+  font-size: 0.875rem;
+  color: var(--color-text-subtle);
+}
+
+/* ========================================
+   BOOKING
+   ======================================== */
+
+.booking-intro {
+  color: var(--color-text-dim);
+  margin-bottom: var(--space-lg);
+  font-size: 0.9375rem;
+}
+
+.booking-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+.booking-card {
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.booking-card h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.booking-card p {
+  font-size: 0.9375rem;
+  color: var(--color-text-dim);
+  flex-grow: 1;
+}
+
+.booking-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.booking-fallback .fallback-message {
+  font-size: 0.875rem;
+  color: var(--color-text-subtle);
+}
+
+.booking-iframe {
+  width: 100%;
+  min-height: 600px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: var(--color-bg);
+}
+
+/* ========================================
+   CONTACT
+   ======================================== */
+
+.contact {
+  background: var(--color-bg-elevated);
+}
+
+.contact-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.contact-link {
+  font-size: 1.125rem;
+  display: inline-block;
+}
+
+/* ========================================
+   FOOTER
+   ======================================== */
+
+.site-footer {
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.site-footer p {
+  font-size: 0.875rem;
+  color: var(--color-text-subtle);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --space-xl: 3rem;
+    --space-2xl: 4rem;
+  }
+  
+  .hero-headline {
+    font-size: 2rem;
+  }
+  
+  .hero-supporting {
+    font-size: 1rem;
+  }
+  
+  .site-header .container {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+  }
+  
+  .main-nav {
+    gap: var(--space-md);
+  }
+  
+  .timeline-item {
+    grid-template-columns: 100px 1fr;
+    gap: var(--space-sm);
+  }
+  
+  .service-grid,
+  .booking-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .principles-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .timeline-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
