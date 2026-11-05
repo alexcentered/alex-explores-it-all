@@ -149,8 +149,8 @@ const SITE_CONFIG = {
   // Add your Google Calendar appointment schedule URLs here
   // When empty, the site shows a fallback "Booking opens soon" message
   bookingLinks: {
-    discovery: "", // 30-minute discovery call URL
-    session: ""    // 60-minute working session URL
+    discovery: "https://calendar.app.google/XYhK1UtA7DofFz75A", // 30-minute discovery call URL
+    session: "https://calendar.app.google/eaosP9g8TJVQykZ36"    // 60-minute working session URL
   },
   
   // Booking Options
