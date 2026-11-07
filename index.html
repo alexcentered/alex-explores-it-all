@@ -1,131 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alex Arnwine | Quality systems builder</title>
-  
-  <!-- Meta Tags -->
-  <meta name="description" content="Quality systems builder with 17 years in QA across finance, enterprise software, streaming, and AI. Building the systems that let teams ship with confidence.">
-  <meta name="author" content="Alex Arnwine">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="Alex Arnwine | Quality systems builder">
-  <meta property="og:description" content="Quality systems builder with 17 years in QA across finance, enterprise software, streaming, and AI.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://alexexploresitall.com">
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css">
-  
-  <!-- Content Config -->
-  <script src="site.js"></script>
-</head>
-<body>
-  
-  <!-- Header -->
-  <header class="site-header">
-    <div class="container">
-      <h1 class="logo">Alex Arnwine</h1>
-      <nav class="main-nav">
-        <a href="#services">Services</a>
-        <a href="#background">Background</a>
-        <a href="#booking">Book a call</a>
-      </nav>
-    </div>
-  </header>
-  
-  <!-- Hero -->
-  <section class="hero" id="hero">
-    <div class="container">
-      <p class="hero-tagline" id="heroTagline"></p>
-      <h2 class="hero-headline" id="heroHeadline"></h2>
-      <p class="hero-supporting" id="heroSupporting"></p>
-      <div class="hero-actions">
-        <button class="btn btn-primary" id="primaryCTA"></button>
-        <button class="btn btn-secondary" id="secondaryCTA"></button>
-      </div>
-      <div class="employer-note">
-        <p>Hiring for a QA or quality engineering role? <a href="#background">See my background</a> or <a href="https://www.linkedin.com/in/alex-arnwine-78a5338a" target="_blank" rel="noopener">view my LinkedIn</a>.</p>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Services -->
-  <section class="services section" id="services">
-    <div class="container">
-      <h2 class="section-title">What I do</h2>
-      <div class="service-grid" id="serviceGrid"></div>
-      <p class="rates-note">Rates on request</p>
-    </div>
-  </section>
-  
-  <!-- Principles -->
-  <section class="principles section">
-    <div class="container">
-      <h2 class="section-title">How I work</h2>
-      <ul class="principles-list" id="principlesList"></ul>
-    </div>
-  </section>
-  
-  <!-- Outcomes -->
-  <section class="outcomes section">
-    <div class="container">
-      <h2 class="section-title">Selected outcomes</h2>
-      <ul class="outcomes-list" id="outcomesList"></ul>
-    </div>
-  </section>
-  
-  <!-- Background -->
-  <section class="background section" id="background">
-    <div class="container">
-      <h2 class="section-title">Background</h2>
-      <div class="timeline" id="timeline"></div>
-      
-      <div class="skills">
-        <h3 class="subsection-title">Skills</h3>
-        <div class="skills-chips" id="skillsChips"></div>
-      </div>
-      
-      <div class="credentials">
-        <a href="https://www.linkedin.com/in/alex-arnwine-78a5338a" target="_blank" rel="noopener" class="btn btn-secondary">View LinkedIn</a>
-        <p class="resume-note">Resume available on request</p>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Booking -->
-  <section class="booking section" id="booking">
-    <div class="container">
-      <h2 class="section-title">Book a call</h2>
-      <p class="booking-intro">Times shown are in Pacific (PT). All bookings sync directly with my calendar.</p>
-      <div class="booking-options" id="bookingOptions"></div>
-    </div>
-  </section>
-  
-  <!-- Contact -->
-  <section class="contact section" id="contact">
-    <div class="container">
-      <h2 class="section-title">Contact</h2>
-      <div class="contact-links">
-        <a href="mailto:alexcentered@gmail.com" class="contact-link">alexcentered@gmail.com</a>
-        <a href="https://www.linkedin.com/in/alex-arnwine-78a5338a" target="_blank" rel="noopener" class="contact-link">LinkedIn</a>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Footer -->
-  <footer class="site-footer">
-    <div class="container">
-      <p id="footerText"></p>
-    </div>
-  </footer>
-  
-  <!-- Scripts -->
-  <script src="app.js"></script>
-  
-</body>
-</html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Alex Explores It All | Systems Architect</title>
+<meta name="description" content="Alex Arnwine designs quality systems, automation, and AI agent workflows that hold up.">
+<meta name="theme-color" content="#0b0b0c">
+<style>
+:root{--bg:#0b0b0c;--fg:#ededed;--mute:#8a8a8a;--line:#2a2a2a;--acc:#d4d4d4}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--fg)}
+body{font-family:ui-sans-serif,-apple-system,"Helvetica Neue",Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.vig{position:fixed;inset:0;z-index:1;background:radial-gradient(ellipse at 30% 50%,rgba(11,11,12,.2),rgba(11,11,12,.92) 75%);pointer-events:none}
+main{position:relative;z-index:2;min-height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(24px,5vw,64px);padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#bdbdbd;margin-right:8px;box-shadow:0 0 0 0 rgba(220,220,220,.5);animation:p 2.4s infinite}
+@keyframes p{70%{box-shadow:0 0 0 8px rgba(220,220,220,0)}100%{box-shadow:0 0 0 0 rgba(220,220,220,0)}}
+.hero{max-width:760px;padding:40px 0}
+h1{font-size:clamp(46px,9vw,104px);line-height:.95;font-weight:700;letter-spacing:-.035em;margin:18px 0 22px}
+h1 span{color:#6f6f6f}
+p.sub{font-size:clamp(17px,2.1vw,21px);line-height:1.5;color:#b8b8b8;max-width:560px}
+.cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,input{font:inherit;border-radius:10px;outline:none}
+.btn{background:var(--fg);color:#0b0b0c;border:0;padding:15px 24px;font-weight:600;cursor:pointer;transition:transform .15s,background .15s}
+.btn:hover{background:#fff;transform:translateY(-1px)}
+.btn:focus-visible,input:focus-visible{box-shadow:0 0 0 2px var(--bg),0 0 0 4px #a3a3a3}
+form{display:none;gap:10px;flex-wrap:wrap;width:100%;max-width:520px}
+form.open{display:flex}
+input{flex:1 1 240px;background:rgba(20,20,22,.85);border:1px solid #3a3a3a;color:var(--fg);padding:15px 16px;caret-color:#d4d4d4}
+input::placeholder{color:#6e6e6e}
+.thanks{display:none;color:#cfcfcf}
+.thanks.on{display:block}
+footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+a{color:var(--acc);text-decoration:none;border-bottom:1px solid #444}
+a:hover{color:#fff;border-color:#888}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));max-width:620px;margin-top:32px;border-top:1px solid var(--line)}
+.stats div{padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
+.stats div:not(:nth-child(3n+1)){padding-left:20px;border-left:1px solid var(--line)}
+.stats b{display:block;font-size:clamp(26px,3vw,36px);font-weight:700;letter-spacing:-.03em;color:var(--fg)}
+.stats .mono{font-size:11px;letter-spacing:.12em;display:block;margin-top:6px;white-space:nowrap}
+@media (max-width:640px){.stats{grid-template-columns:1fr 1fr}.stats div,.stats div:not(:nth-child(3n+1)){padding:14px 10px 14px 0;border-left:0}.stats div:nth-child(even){padding-left:16px;border-left:1px solid var(--line)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+</style></head><body>
+<canvas id="c" aria-hidden="true"></canvas><div class="vig"></div>
+<main>
+<header><div class="mono">Alex Explores It All</div><div class="mono"><span class="dot"></span>Building</div></header>
+<section class="hero">
+<div class="mono">// Alex Arnwine</div>
+<h1>Systems<br><span>Architect.</span></h1>
+<p class="sub">I design custom solutions, quality systems, automation, and AI agent workflows.</p>
+<div class="stats"><div><b>20</b><span class="mono">Years in the craft</span></div><div><b>10+</b><span class="mono">Websites built</span></div><div><b>20+</b><span class="mono">Teams supported</span></div><div><b>50+</b><span class="mono">Custom apps built</span></div><div><b>100s</b><span class="mono">Automations</span></div><div><b>100s</b><span class="mono">Agent workflows</span></div></div>
+<div class="cta">
+<button class="btn" id="join">Join the waitlist</button>
+<form id="f" novalidate><input id="e" type="email" required placeholder="you@email.com" aria-label="Email address" autocomplete="email"><button class="btn" type="submit">Notify me</button></form>
+<p class="thanks mono" id="t">You're on the list. Talk soon.</p>
+</div>
+</section>
+<footer><div class="mono">Something new is in the works</div><div class="mono"><a href="https://www.linkedin.com/in/alex-arnwine-78a5338a" target="_blank" rel="noopener">LinkedIn</a> &nbsp; <a href="mailto:alexcentered@gmail.com">Email</a></div></footer>
+</main>
+<script>
+
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function confetti(ox,oy,n,pow){if(RM)return;const cv=document.createElement('canvas');cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50';document.body.appendChild(cv);
+const k=cv.getContext('2d'),dp=devicePixelRatio||1;cv.width=innerWidth*dp;cv.height=innerHeight*dp;k.scale(dp,dp);
+const cols=['#ffffff','#e6e6e6','#c9c9c9','#a8a8a8','#8c8c8c','#d8d8d8'];
+const ps=Array.from({length:n},()=>{const a=-Math.PI/2+(Math.random()-.5)*Math.PI*1.1,v=pow*(.5+Math.random());return{x:ox,y:oy,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:Math.random()*6.28,vr:(Math.random()-.5)*.3,w:4+Math.random()*5,h:2+Math.random()*4,c:cols[Math.random()*cols.length|0],l:1}});
+(function f(){k.clearRect(0,0,innerWidth,innerHeight);let live=0;for(const p of ps){if(p.l<=0)continue;live++;p.vy+=.18;p.vx*=.985;p.vy*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.l-=.009;k.save();k.globalAlpha=Math.max(p.l,0);k.translate(p.x,p.y);k.rotate(p.r);k.fillStyle=p.c;k.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.r*2)));k.restore()}
+live?requestAnimationFrame(f):cv.remove()})()}
+function at(el){const b=el.getBoundingClientRect();return[b.left+b.width/2,b.top+b.height/2]}
+const j=document.getElementById('join'),f=document.getElementById('f'),e=document.getElementById('e'),t=document.getElementById('t');
+j.onclick=()=>{confetti(...at(j),40,7);j.style.display='none';f.classList.add('open');e.focus()};
+f.onsubmit=ev=>{ev.preventDefault();if(!e.checkValidity()){e.style.borderColor='#bbb';e.focus();return}
+/* TODO: POST to Apps Script web app: fetch(URL,{method:'POST',mode:'no-cors',body:new URLSearchParams({email:e.value})}) */
+const pt=at(f);f.classList.remove('open');t.classList.add('on');confetti(pt[0],pt[1],140,11)};
+const c=document.getElementById('c'),x=c.getContext('2d'),R=matchMedia('(prefers-reduced-motion: reduce)').matches;let W,H,N=[],d=devicePixelRatio||1;
+function init(){W=innerWidth;H=innerHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0);const g=W<600?56:72;N=[];
+for(let i=g/2;i<W;i+=g)for(let k=g/2;k<H;k+=g)if(Math.random()<.55)N.push({x:i,y:k,o:Math.random()*6.28});}
+let P=[];function spawn(){if(N.length<2)return;const a=N[Math.random()*N.length|0];const nb=N.filter(b=>b!==a&&(Math.abs(b.x-a.x)<1&&Math.abs(b.y-a.y)<160||Math.abs(b.y-a.y)<1&&Math.abs(b.x-a.x)<160));if(nb.length)P.push({a,b:nb[Math.random()*nb.length|0],t:0});}
+function draw(ts){x.clearRect(0,0,W,H);
+x.strokeStyle='rgba(160,160,160,.07)';x.lineWidth=1;for(const a of N)for(const b of N){if(b.x>a.x&&b.y===a.y&&b.x-a.x<160||b.y>a.y&&b.x===a.x&&b.y-a.y<160){x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()}}
+for(const n of N){const s=.25+.2*Math.sin(ts/1400+n.o);x.fillStyle=`rgba(200,200,200,${s})`;x.fillRect(n.x-1.5,n.y-1.5,3,3)}
+for(const p of P){p.t+=.012;const px=p.a.x+(p.b.x-p.a.x)*p.t,py=p.a.y+(p.b.y-p.a.y)*p.t;x.strokeStyle=`rgba(230,230,230,${.5*(1-p.t)})`;x.beginPath();x.moveTo(p.a.x,p.a.y);x.lineTo(px,py);x.stroke();x.fillStyle='rgba(240,240,240,.9)';x.fillRect(px-1.5,py-1.5,3,3)}
+P=P.filter(p=>p.t<1);if(!R){if(Math.random()<.08&&P.length<14)spawn();requestAnimationFrame(draw)}}
+init();if(R){for(let i=0;i<8;i++){spawn();P[P.length-1]&&(P[P.length-1].t=.5)}}addEventListener('resize',()=>{init();if(R)draw(0)});
+for(let i=0;i<10;i++){spawn();P.forEach(p=>p.t=Math.random()*.8)}requestAnimationFrame(draw);
+</script></body></html>
