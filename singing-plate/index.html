@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Cymatics Rig Console</title>
+<meta name="description" content="Frequency console for a desktop Chladni plate rig: pure tones, slow sweeps, a pattern log and a plate simulator.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Cymatics rig console</p>
+    </div>
+  </div>
+  <div class="topbar-tools">
+    <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
+      <span class="lamp" aria-hidden="true"></span><span id="statusText">Standby</span>
+    </div>
+    <button class="btn ghost" id="keysBtn" type="button" aria-haspopup="dialog">Keys</button>
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ============================================================ FREQUENCY -->
+  <section class="panel freq" aria-labelledby="freqTitle">
+    <div class="panel-head">
+      <h2 id="freqTitle">Frequency</h2>
+      <span class="label">20 Hz to 5 kHz</span>
+    </div>
+
+    <div class="readout">
+      <div class="readout-main">
+        <output class="big" id="freqBig" for="freqInput" aria-label="Frequency in hertz">440.0</output>
+        <span class="unit">Hz</span>
+      </div>
+      <dl class="facts">
+        <div><dt>Note</dt><dd><span id="noteName">A4</span> <span class="dim" id="noteCents">±0 ¢</span></dd></div>
+        <div><dt>Wavelength in air</dt><dd id="wavelength">78.0 cm</dd></div>
+        <div><dt>Period</dt><dd id="period">2.27 ms</dd></div>
+      </dl>
+    </div>
+
+    <div class="tuning">
+      <div class="dial-wrap">
+        <svg class="dial" id="dial" tabindex="0" role="slider" aria-label="Coarse frequency dial"
+             aria-valuemin="20" aria-valuemax="5000" aria-valuenow="440" aria-valuetext="440.0 hertz"></svg>
+        <p class="label center">Coarse</p>
+      </div>
+
+      <div class="tuning-controls">
+        <div class="field">
+          <label class="label" for="freqInput">Set exactly</label>
+          <div class="nudge-row">
+            <button class="btn step" type="button" data-nudge="-10" aria-label="Down 10 hertz">−10</button>
+            <button class="btn step" type="button" data-nudge="-1" aria-label="Down 1 hertz">−1</button>
+            <button class="btn step" type="button" data-nudge="-0.1" aria-label="Down 0.1 hertz">−0.1</button>
+            <input class="input num" id="freqInput" type="number" inputmode="decimal" min="20" max="5000" step="0.1" value="440.0">
+            <button class="btn step" type="button" data-nudge="0.1" aria-label="Up 0.1 hertz">+0.1</button>
+            <button class="btn step" type="button" data-nudge="1" aria-label="Up 1 hertz">+1</button>
+            <button class="btn step" type="button" data-nudge="10" aria-label="Up 10 hertz">+10</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label class="label" for="fineTrim">Fine trim</label>
+            <output class="label" id="fineOut" for="fineTrim">±0.0 Hz</output>
+          </div>
+          <input class="range centred" id="fineTrim" type="range" min="-10" max="10" step="0.1" value="0"
+                 aria-describedby="fineHint">
+          <p class="hint" id="fineHint">Drag for up to ±10 Hz in 0.1 Hz steps. Springs back to centre on release.</p>
+        </div>
+
+        <fieldset class="field seg-field">
+          <legend class="label">Waveform</legend>
+          <div class="seg" id="waveSeg">
+            <label><input type="radio" name="wave" value="sine" checked><span>
+              <svg viewBox="0 0 28 12" aria-hidden="true"><path d="M1 6c2.200-6.700 4.300-6.700 6.500 0s4.300 6.700 6.500 0 4.300-6.700 6.500 0 4.300 6.700 6.500 0"/></svg>Sine</span></label>
+            <label><input type="radio" name="wave" value="triangle"><span>
+              <svg viewBox="0 0 28 12" aria-hidden="true"><path d="M1 6l3.250-5 6.500 10 6.500-10 6.500 10L27 6"/></svg>Triangle</span></label>
+            <label><input type="radio" name="wave" value="square"><span>
+              <svg viewBox="0 0 28 12" aria-hidden="true"><path d="M1 6V1h6.500v10H14V1h6.500v10H27V6"/></svg>Square</span></label>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <div class="scope-wrap">
+      <canvas class="scope" id="scope" width="900" height="120" role="img" aria-label="Oscilloscope trace of the output signal"></canvas>
+      <span class="label scope-tag">Output</span>
+    </div>
+  </section>
+
+  <!-- ============================================================ SIMULATOR -->
+  <section class="panel sim" aria-labelledby="simTitle">
+    <div class="panel-head">
+      <h2 id="simTitle">Plate simulator</h2>
+      <div class="seg small" role="group" aria-label="Simulator view">
+        <label><input type="radio" name="view" value="sand" checked><span>Sand</span></label>
+        <label><input type="radio" name="view" value="field"><span>Lines</span></label>
+      </div>
+    </div>
+
+    <div class="plate-frame">
+      <canvas class="plate" id="plate" role="img" aria-label="Predicted sand pattern for the current frequency"></canvas>
+      <span class="plate-bolt" aria-hidden="true"></span>
+    </div>
+
+    <div class="sim-read">
+      <div>
+        <p class="label">Nearest predicted resonance</p>
+        <p class="value"><span id="simMode">(4,2)</span> <span class="dim" id="simModeHz">at 843.2 Hz</span></p>
+      </div>
+      <div class="right">
+        <p class="label">Offset</p>
+        <p class="value" id="simDelta">0.0 Hz</p>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="scatterBtn" type="button">Re-scatter sand</button>
+      <button class="btn" id="jumpBtn" type="button">Go to nearest</button>
+    </div>
+
+    <details class="fold">
+      <summary>Plate setup</summary>
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="plSide">Side, cm</label>
+          <input class="input" id="plSide" type="number" inputmode="decimal" min="5" max="100" step="0.5" value="24">
+        </div>
+        <div class="field">
+          <label class="label" for="plThick">Thickness, mm</label>
+          <input class="input" id="plThick" type="number" inputmode="decimal" min="0.2" max="10" step="0.1" value="1">
+        </div>
+        <div class="field span2">
+          <label class="label" for="plMaterial">Material</label>
+          <select class="input" id="plMaterial"></select>
+        </div>
+      </div>
+      <div class="calib">
+        <p class="hint">Found a real resonance that matches the predicted shape? Align the model to it and every other prediction moves with it.</p>
+        <div class="btn-row">
+          <button class="btn" id="alignBtn" type="button">Align model to this frequency</button>
+          <button class="btn ghost" id="trimReset" type="button">Reset</button>
+        </div>
+        <p class="label">Model trim <span id="trimOut">×1.000</span></p>
+      </div>
+    </details>
+
+    <details class="fold" open>
+      <summary>Predicted resonances <span class="dim" id="modeCount"></span></summary>
+      <div class="chips" id="modeList"></div>
+    </details>
+
+    <p class="hint">Idealised model of a centre-driven square plate. Real resonances land near these predictions, not on them: treat it as a map, and trust the sand.</p>
+  </section>
+
+  <!-- =============================================================== OUTPUT -->
+  <section class="panel out" aria-labelledby="outTitle">
+    <div class="panel-head">
+      <h2 id="outTitle">Output</h2>
+      <span class="label" id="outState">Silent</span>
+    </div>
+
+    <button class="btn fire" id="toneBtn" type="button" aria-pressed="false">
+      <span class="fire-text" id="toneText">Engage tone</span>
+      <kbd>Space</kbd>
+    </button>
+
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="volume">Volume</label>
+        <output class="label" id="volumeOut" for="volume">25%</output>
+      </div>
+      <input class="range" id="volume" type="range" min="0" max="100" step="1" value="25">
+    </div>
+
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="ceiling">Safety limiter ceiling</label>
+        <output class="label" id="ceilingOut" for="ceiling">−6 dBFS</output>
+      </div>
+      <input class="range" id="ceiling" type="range" min="-30" max="0" step="1" value="-6" aria-describedby="ceilHint">
+      <p class="hint" id="ceilHint">Hard limit. Nothing leaves the app above this level, whatever the volume.</p>
+    </div>
+
+    <div class="meter" aria-hidden="true">
+      <div class="meter-bar"><div class="meter-fill" id="meterFill"></div><div class="meter-ceil" id="meterCeil"></div></div>
+      <div class="meter-scale"><span>−48</span><span>−36</span><span>−24</span><span>−12</span><span>0 dBFS</span></div>
+    </div>
+    <p class="label">Peak <span id="peakOut">−∞ dBFS</span></p>
+
+    <label class="check">
+      <input type="checkbox" id="lfGuard" checked>
+      <span class="check-box" aria-hidden="true"></span>
+      <span>Low-frequency driver guard <span class="dim">(eases level below 60 Hz)</span></span>
+    </label>
+    <p class="notice" id="guardNote" hidden></p>
+  </section>
+
+  <!-- ================================================================ SWEEP -->
+  <section class="panel sweep" aria-labelledby="swTitle">
+    <div class="panel-head">
+      <h2 id="swTitle">Sweep</h2>
+      <span class="label" id="swState">Ready</span>
+    </div>
+
+    <div class="form-grid three">
+      <div class="field">
+        <label class="label" for="swFrom">From, Hz</label>
+        <input class="input" id="swFrom" type="number" inputmode="decimal" min="20" max="5000" step="1" value="100">
+      </div>
+      <div class="field">
+        <label class="label" for="swTo">To, Hz</label>
+        <input class="input" id="swTo" type="number" inputmode="decimal" min="20" max="5000" step="1" value="3000">
+      </div>
+      <div class="field">
+        <label class="label" for="swRate">Rate, Hz/s</label>
+        <input class="input" id="swRate" type="number" inputmode="decimal" min="0.1" max="500" step="0.1" value="5">
+      </div>
+    </div>
+
+    <div class="sweep-track" id="swTrack" aria-hidden="true">
+      <div class="sweep-ticks" id="swTicks"></div>
+      <div class="sweep-fill" id="swFill"></div>
+      <div class="sweep-head" id="swHead"></div>
+    </div>
+    <div class="field-head">
+      <span class="label" id="swSpan">100 → 3000 Hz</span>
+      <span class="label">Time left <span id="swEta">09:40</span></span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn primary grow" id="swGo" type="button">Start sweep <kbd>S</kbd></button>
+      <button class="btn" id="swReset" type="button" disabled>Reset</button>
+    </div>
+    <p class="hint" id="swHint">Glides slowly so resonances have time to show. Press <kbd>S</kbd> the moment a pattern locks in: the sweep freezes and the tone holds.</p>
+  </section>
+
+  <!-- ================================================================== LOG -->
+  <section class="panel log" aria-labelledby="logTitle">
+    <div class="panel-head">
+      <h2 id="logTitle">Pattern log</h2>
+      <div class="btn-row tight">
+        <button class="btn ghost" id="sortBtn" type="button">Sort: newest</button>
+        <button class="btn ghost" id="exportBtn" type="button">Export</button>
+        <label class="btn ghost file-btn">Import<input id="importInput" type="file" accept="application/json,.json"></label>
+      </div>
+    </div>
+
+    <div class="log-body">
+      <form class="log-form" id="logForm" autocomplete="off">
+        <p class="label" id="formTitle">Log the current pattern</p>
+        <p class="capture"><span id="capFreq">440.0 Hz</span> <span class="dim" id="capMeta">A4 · sine</span></p>
+        <div class="field">
+          <label class="label" for="pName">Name</label>
+          <input class="input" id="pName" type="text" maxlength="120" placeholder="e.g. Four-leaf star">
+        </div>
+        <div class="field">
+          <label class="label" for="pNotes">Notes</label>
+          <textarea class="input" id="pNotes" rows="3" maxlength="4000" placeholder="Volume, medium, how sharp the lines were"></textarea>
+        </div>
+        <div class="field">
+          <span class="label" id="photoLabel">Photo of the plate</span>
+          <div class="photo-row">
+            <label class="btn file-btn" id="photoBtn"><span id="photoBtnText">Add photo</span><input id="pPhoto" type="file" accept="image/*" aria-labelledby="photoLabel"></label>
+            <button class="btn ghost" id="photoClear" type="button" hidden>Remove</button>
+            <img class="thumb" id="pPreview" alt="Selected photo preview" hidden>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary grow" id="pSave" type="submit">Save to log</button>
+          <button class="btn ghost" id="pCancel" type="button" hidden>Cancel</button>
+        </div>
+        <p class="notice" id="logMsg" role="status" hidden></p>
+      </form>
+
+      <div class="log-list-wrap">
+        <p class="notice" id="storeNote" hidden>This browser is not letting the log be stored. Entries will last only until this page is closed: use Export to keep them.</p>
+        <p class="empty" id="logEmpty">No patterns logged yet. Find a resonance, then save it here with a photo.</p>
+        <ul class="log-list" id="logList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================================== SAFETY -->
+  <section class="panel brief" aria-labelledby="briefTitle">
+    <div class="panel-head"><h2 id="briefTitle">Range safety</h2></div>
+    <ol class="brief-list">
+      <li><b>Ears first.</b> Earplugs or defenders on before the tone. Above 1 kHz it is shrill at any useful level.</li>
+      <li><b>Start low.</b> Bring the amplifier up from zero each session. Raise volume only until the sand moves.</li>
+      <li><b>Wired and clean.</b> Cable from computer to amplifier, system EQ and sound enhancements off.</li>
+      <li><b>Mind the low end.</b> Long, loud tones under about 60 Hz can overheat the driver or bottom it out.</li>
+      <li><b>Know the stop.</b> <kbd>Esc</kbd> silences the output immediately from anywhere on this page.</li>
+      <li><b>Contain the mess.</b> Tray under the plate. Sand travels.</li>
+    </ol>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · phase one · the simulator is a model, the plate is the truth</footer>
+
+<dialog class="dialog" id="keysDialog" aria-labelledby="keysTitle">
+  <div class="panel-head">
+    <h2 id="keysTitle">Keyboard</h2>
+    <button class="btn ghost" id="keysClose" type="button">Close</button>
+  </div>
+  <dl class="keys">
+    <div><dt><kbd>Space</kbd></dt><dd>Engage or cease the tone</dd></div>
+    <div><dt><kbd>Esc</kbd></dt><dd>Emergency silence</dd></div>
+    <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge 1 Hz</dd></div>
+    <div><dt><kbd>Shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge 10 Hz</dd></div>
+    <div><dt><kbd>,</kbd> <kbd>.</kbd></dt><dd>Nudge 0.1 Hz</dd></div>
+    <div><dt><kbd>S</kbd></dt><dd>Start, lock or resume the sweep</dd></div>
+    <div><dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Volume down or up 5%</dd></div>
+    <div><dt><kbd>L</kbd></dt><dd>Log the current pattern</dd></div>
+    <div><dt><kbd>R</kbd></dt><dd>Re-scatter the simulated sand</dd></div>
+  </dl>
+  <p class="hint">Keys are ignored while you are typing in a text box, except <kbd>Esc</kbd>.</p>
+</dialog>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/sweep.js"></script>
+<script src="js/core/chladni.js"></script>
+<script src="js/audio/engine.js"></script>
+<script src="js/store/presets.js"></script>
+<script src="js/ui/dial.js"></script>
+<script src="js/ui/plateview.js"></script>
+<script src="js/ui/app.js"></script>
+</body>
+</html>
