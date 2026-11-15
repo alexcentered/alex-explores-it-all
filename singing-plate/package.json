@@ -1,0 +1,15 @@
+{
+  "name": "singing-plate",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Operation Singing Plate: frequency console and 3D form lab for a desktop Chladni plate rig.",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.js",
+    "vendor": "esbuild tools/three-entry.js --bundle --minify --format=iife --global-name=THREE --legal-comments=none --outfile=vendor/three.bundle.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.187.0"
+  }
+}
