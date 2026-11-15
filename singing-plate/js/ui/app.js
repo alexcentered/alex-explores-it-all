@@ -658,7 +658,10 @@
     var del = make('button', 'btn ghost', 'Delete');
     del.type = 'button';
     del.dataset.action = 'delete';
-    actions.append(recall, edit, del);
+    var lab = make('a', 'btn ghost', '3D');
+    lab.href = 'lab.html#log=' + encodeURIComponent(rec.id);
+    lab.setAttribute('aria-label', 'Open ' + rec.name + ' in the 3D lab');
+    actions.append(recall, lab, edit, del);
     body.appendChild(actions);
     li.appendChild(body);
     return li;

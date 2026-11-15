@@ -1,8 +1,11 @@
 # Singing Plate
 
-Frequency console for a desktop Chladni plate rig. It sends a pure tone to an amplifier and vibration driver, a metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. This app is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
+Two tools for a desktop Chladni plate rig, in one app:
 
-The hardware plan, parts list and phase two scope are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
+- **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
+- **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
+
+The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
 
 ## Run it
 
@@ -13,7 +16,7 @@ No install and no build step.
 
 Test with headphones at low volume before connecting the amplifier.
 
-## What it does
+## The console
 
 | Area | What you get |
 | --- | --- |
@@ -77,25 +80,65 @@ That gets the family of shapes and their order right. It does not get exact freq
 
 Once you find a real resonance whose pattern matches a predicted one, open **Plate setup** and press **Align model to this frequency**. That rescales every prediction to your plate.
 
+## The 3D lab
+
+Three shapes, each chosen either by frequency or directly by mode numbers:
+
+| Shape | What it shows | How frequency picks the form |
+| --- | --- | --- |
+| Plate | The Chladni pattern lifted into relief: either the plate caught mid-swing, or the sand lines raised as ridges | The same driven-plate model as the console, using the plate set up there |
+| Sphere | Standing waves on a ball, the shapes a vibrating droplet takes (spherical harmonics) | Rayleigh's formula for a water drop of the radius you set |
+| Room | Standing waves inside a cube, drawn as the sheets where the air stays still | Room-mode formula for a cube of the side you set |
+
+- **Viewer:** drag to orbit, scroll or pinch to zoom. The wave animates; **Freeze** stops it where it is and **Freeze at peak** stops it at its most pronounced.
+- **2D pattern:** the matching flat picture sits beside the 3D form: nodal lines on the plate, the sphere's still lines unrolled like a map, or a slice through the room.
+- **Pattern log:** any pattern saved on the console can be opened here, from the picker or from the **3D** button on a log entry.
+- **Hear it:** plays the form's frequency through the same limited, faded output as the console.
+
+### Printing
+
+A wave pattern has no thickness, so each shape is given what a printer needs: the plate gets a base slab, the sphere a flat cut underneath so it stands, and the room's node sheets a wall thickness plus an optional slab that ties them together.
+
+**Check and build** makes the print file at export resolution (finer than the preview, and independent of it) and inspects it:
+
+| Check | What it means |
+| --- | --- |
+| Watertight | The surface is closed. If not, the download is withheld |
+| One piece | Nothing is floating or loose. Fails with the number of separate pieces |
+| Thickness | The thinnest designed feature is at least 0.8 mm |
+| Detail | The wall is wide enough for the chosen resolution to draw cleanly |
+
+It also reports size, volume, triangle count and file size. Files are binary STL in millimetres, z up.
+
+Some room modes really are made of separate sheets (a single mode gives flat parallel planes, for example). The check will say so; adding a base, thickening the wall, or blending the axes usually joins them.
+
+The forms are mathematical models of standing waves, not recordings. They show the idealised shape.
+
 ## Layout
 
 ```
 index.html          the console
-css/styles.css      theme and layout
+lab.html            the 3D lab
+css/styles.css      theme and layout for both
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
+vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
   freq.js             ranges, notes, wavelength, dial mapping
   safety.js           gain law, limiter curve, driver guard
   sweep.js            sweep state machine
   chladni.js          plate model
-js/audio/engine.js  Web Audio signal chain
-js/store/presets.js pattern log storage (IndexedDB) and photo handling
-js/ui/              dial, plate view, and the wiring between controls
+  forms.js            sphere and room standing waves
+  mesh.js             solid builders, isosurface, printability inspection, STL
+js/audio/engine.js  Web Audio signal chain, shared by both pages
+js/store/presets.js pattern log storage (IndexedDB), shared by both pages
+js/ui/              app.js wires the console, lab.js wires the lab;
+                    dial, plate view and 3D viewer are the parts they use
 tests/              unit tests for js/core
+tools/              entry file for rebuilding the Three.js bundle
 docs/               mission brief
 ```
 
-Scripts are plain files rather than ES modules so the app runs when opened straight from disk.
+Scripts are plain files rather than ES modules so the app runs when opened straight from disk. Three.js only ships as ES modules, so it is bundled once into `vendor/three.bundle.js`. That file is committed; nothing needs installing to run the app. To upgrade Three.js or use more of it: `npm install`, edit `tools/three-entry.js`, then `npm run vendor`.
 
 ## Tests
 
@@ -103,15 +146,11 @@ Scripts are plain files rather than ES modules so the app runs when opened strai
 npm test
 ```
 
-Runs the unit tests for `js/core` on Node's built-in test runner. No dependencies to install.
+Runs the unit tests for `js/core` on Node's built-in test runner. No dependencies to install. The mesh tests build each kind of solid and assert it is closed, correctly faced, in one piece, and the size and thickness asked for.
 
 ## Data
 
 Everything stays in your browser. The pattern log lives in IndexedDB and settings in localStorage, both scoped to wherever the page is served from, so a log made at `localhost:8080` is separate from one made by opening the file directly. Use **Export** to move a log between them or to back it up; photos travel inside the exported file.
-
-## Phase two hooks
-
-The 3D Form Lab reuses this core unchanged: `Engine` for sound, `Store` for presets (records carry a `schema` number, the plate setup and the nearest mode), and `chladni.field()` as the height map for the plate relief.
 
 ## Moving to its own repository
 

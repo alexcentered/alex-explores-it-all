@@ -130,16 +130,12 @@
   }
 
   /*
-   * Vibration amplitude over the plate at one drive frequency.
-   * Returns a size x size Float32Array, row-major, scaled so its RMS is 1:
-   * values near 0 are nodal lines (where sand settles), values above 1 are
-   * the lively regions sand is thrown out of.
+   * Core of the model: the plate's complex response at one drive frequency.
+   * Fills re and im (size x size, row-major) and returns the RMS magnitude,
+   * or 0 when the inputs make no physical sense.
    */
-  function field(freq, C, size, opts) {
-    var o = opts || {};
-    var Q = o.Q || DEFAULT_Q;
-    var out = o.out && o.out.length === size * size ? o.out : new Float32Array(size * size);
-    if (!(C > 0) || !(freq > 0)) { out.fill(1); return out; }
+  function solve(freq, C, size, Q, re, im) {
+    if (!(C > 0) || !(freq > 0)) return 0;
 
     var kMax = indexLimit(C, freq);
     var count = kMax / 2 + 1;
@@ -171,14 +167,14 @@
     var mi2, ni2, j, i;
     for (mi2 = 0; mi2 < count; mi2++) {
       for (ni2 = 0; ni2 < count; ni2++) {
-        var re = wRe[mi2 * count + ni2];
-        var im = wIm[mi2 * count + ni2];
-        if (re === 0 && im === 0) continue;
+        var wr = wRe[mi2 * count + ni2];
+        var wi = wIm[mi2 * count + ni2];
+        if (wr === 0 && wi === 0) continue;
         var cOff = ni2 * size, rOff = mi2 * size;
         for (j = 0; j < size; j++) {
           var cy = cosT[cOff + j];
-          rowRe[rOff + j] += re * cy;
-          rowIm[rOff + j] += im * cy;
+          rowRe[rOff + j] += wr * cy;
+          rowIm[rOff + j] += wi * cy;
         }
       }
     }
@@ -192,19 +188,78 @@
           uRe += cx * rowRe[mi2 * size + j];
           uIm += cx * rowIm[mi2 * size + j];
         }
-        var mag2 = uRe * uRe + uIm * uIm;
-        sumSq += mag2;
-        out[j * size + i] = Math.sqrt(mag2);
+        sumSq += uRe * uRe + uIm * uIm;
+        re[j * size + i] = uRe;
+        im[j * size + i] = uIm;
       }
     }
+    return Math.sqrt(sumSq / (size * size));
+  }
 
-    var rms = Math.sqrt(sumSq / (size * size));
-    if (rms > 0) {
-      var inv = 1 / rms;
-      for (i = 0; i < out.length; i++) out[i] *= inv;
-    } else {
-      out.fill(1);
+  /*
+   * The driven plate as a travelling picture: displacement at phase p is
+   *   re * cos(p) - im * sin(p)
+   * Both arrays are scaled so the RMS magnitude is 1. Returns null when the
+   * inputs make no physical sense.
+   */
+  function complexField(freq, C, size, opts) {
+    var o = opts || {};
+    var re = new Float32Array(size * size);
+    var im = new Float32Array(size * size);
+    var rms = solve(freq, C, size, o.Q || DEFAULT_Q, re, im);
+    if (!(rms > 0)) return null;
+    var inv = 1 / rms;
+    for (var i = 0; i < re.length; i++) { re[i] *= inv; im[i] *= inv; }
+    return { re: re, im: im };
+  }
+
+  var scratch = { size: 0, re: null, im: null };
+
+  /*
+   * Vibration amplitude over the plate at one drive frequency.
+   * Returns a size x size Float32Array, row-major, scaled so its RMS is 1:
+   * values near 0 are nodal lines (where sand settles), values above 1 are
+   * the lively regions sand is thrown out of.
+   */
+  function field(freq, C, size, opts) {
+    var o = opts || {};
+    var out = o.out && o.out.length === size * size ? o.out : new Float32Array(size * size);
+    if (scratch.size !== size) {
+      scratch.size = size;
+      scratch.re = new Float32Array(size * size);
+      scratch.im = new Float32Array(size * size);
     }
+    var re = scratch.re, im = scratch.im;
+    var rms = solve(freq, C, size, o.Q || DEFAULT_Q, re, im);
+    if (!(rms > 0)) { out.fill(1); return out; }
+    var inv = 1 / rms;
+    for (var i = 0; i < out.length; i++) {
+      out[i] = Math.sqrt(re[i] * re[i] + im[i] * im[i]) * inv;
+    }
+    return out;
+  }
+
+  /*
+   * One pure mode pair, the textbook Chladni figure:
+   *   cos(m pi x) cos(n pi y) + sign * cos(n pi x) cos(m pi y)
+   * Any whole m and n, odd ones included. Signed, scaled to a peak of 1.
+   */
+  function modeShape(m, n, sign, size) {
+    var out = new Float32Array(size * size);
+    var s = sign < 0 ? -1 : 1;
+    var peak = 0;
+    for (var j = 0; j < size; j++) {
+      var y = (j + 0.5) / size;
+      var cmy = Math.cos(m * Math.PI * y), cny = Math.cos(n * Math.PI * y);
+      for (var i = 0; i < size; i++) {
+        var x = (i + 0.5) / size;
+        var v = Math.cos(m * Math.PI * x) * cny + s * Math.cos(n * Math.PI * x) * cmy;
+        out[j * size + i] = v;
+        if (Math.abs(v) > peak) peak = Math.abs(v);
+      }
+    }
+    if (peak > 1e-9) for (var k = 0; k < out.length; k++) out[k] /= peak;
+    else out.fill(0);
     return out;
   }
 
@@ -219,7 +274,9 @@
     nearestMode: nearestMode,
     trimToAlign: trimToAlign,
     indexLimit: indexLimit,
-    field: field
+    field: field,
+    complexField: complexField,
+    modeShape: modeShape
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

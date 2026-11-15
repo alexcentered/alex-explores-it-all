@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | 3D Form Lab</title>
+<meta name="description" content="Pick a frequency, see the 3D form its standing wave would make, and export it for printing.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">3D form lab</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="index.html">Console</a>
+    <a href="lab.html" aria-current="page">3D lab</a>
+  </nav>
+  <div class="topbar-tools">
+    <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
+      <span class="lamp" aria-hidden="true"></span><span id="statusText">Standby</span>
+    </div>
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="lab-grid">
+
+  <!-- ================================================================= FORM -->
+  <section class="panel lab-form" aria-labelledby="formTitle">
+    <div class="panel-head"><h2 id="formTitle">Form</h2></div>
+
+    <fieldset class="field seg-field">
+      <legend class="label">Shape</legend>
+      <div class="seg" id="shapeSeg">
+        <label><input type="radio" name="shape" value="plate" checked><span>Plate</span></label>
+        <label><input type="radio" name="shape" value="sphere"><span>Sphere</span></label>
+        <label><input type="radio" name="shape" value="room"><span>Room</span></label>
+      </div>
+      <p class="hint" id="shapeHint"></p>
+    </fieldset>
+
+    <fieldset class="field seg-field">
+      <legend class="label">Choose the wave by</legend>
+      <div class="seg" id="sourceSeg">
+        <label><input type="radio" name="source" value="freq" checked><span>Frequency</span></label>
+        <label><input type="radio" name="source" value="mode"><span>Mode numbers</span></label>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="labFreq">Frequency, Hz</label>
+        <output class="label" id="labNote" for="labFreq">A4</output>
+      </div>
+      <input class="input" id="labFreq" type="number" inputmode="decimal" min="20" max="5000" step="0.1" value="843.2">
+      <input class="range" id="labFreqRange" type="range" min="0" max="1000" step="1" value="500" aria-label="Frequency slider">
+      <p class="hint" id="freqHint" hidden></p>
+    </div>
+
+    <div class="field" id="presetField">
+      <label class="label" for="presetSelect">Open from the pattern log</label>
+      <select class="input" id="presetSelect"><option value="">No patterns logged yet</option></select>
+    </div>
+
+    <div class="field">
+      <span class="label" id="modeLabel">Mode numbers</span>
+      <div class="form-grid three" id="modeGrid">
+        <div class="field"><label class="label" for="modeA" id="modeALabel">m</label><input class="input" id="modeA" type="number" inputmode="numeric" min="0" max="12" step="1" value="4"></div>
+        <div class="field"><label class="label" for="modeB" id="modeBLabel">n</label><input class="input" id="modeB" type="number" inputmode="numeric" min="0" max="12" step="1" value="2"></div>
+        <div class="field" id="modeCField"><label class="label" for="modeC" id="modeCLabel">nz</label><input class="input" id="modeC" type="number" inputmode="numeric" min="0" max="12" step="1" value="0"></div>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+
+    <fieldset class="field seg-field" id="symmetryField">
+      <legend class="label">Symmetry</legend>
+      <div class="seg" id="symmetrySeg">
+        <label><input type="radio" name="symmetry" value="a" checked><span id="symALabel">Symmetric</span></label>
+        <label><input type="radio" name="symmetry" value="b"><span id="symBLabel">Antisymmetric</span></label>
+      </div>
+      <p class="hint" id="symmetryHint"></p>
+    </fieldset>
+
+    <div class="field" id="physField">
+      <label class="label" for="physInput" id="physLabel">Drop radius, mm</label>
+      <input class="input" id="physInput" type="number" inputmode="decimal" step="0.1" value="1">
+      <p class="hint" id="physHint"></p>
+    </div>
+
+    <fieldset class="field seg-field" id="reliefField">
+      <legend class="label">Relief</legend>
+      <div class="seg">
+        <label><input type="radio" name="relief" value="wave" checked><span>Wave</span></label>
+        <label><input type="radio" name="relief" value="lines"><span>Sand lines</span></label>
+      </div>
+      <p class="hint" id="reliefHint"></p>
+    </fieldset>
+
+    <div class="field" id="ampField">
+      <div class="field-head">
+        <label class="label" for="amp">Amplitude</label>
+        <output class="label" id="ampOut" for="amp">50%</output>
+      </div>
+      <input class="range" id="amp" type="range" min="5" max="100" step="1" value="50">
+    </div>
+
+    <div class="field hear">
+      <button class="btn" id="hearBtn" type="button" aria-pressed="false">Hear this frequency</button>
+      <div class="field-head">
+        <label class="label" for="labVolume">Volume</label>
+        <output class="label" id="labVolumeOut" for="labVolume">25%</output>
+      </div>
+      <input class="range" id="labVolume" type="range" min="0" max="100" step="1" value="25">
+      <p class="hint">Same limiter and fades as the console. <kbd>Esc</kbd> silences.</p>
+    </div>
+  </section>
+
+  <!-- =============================================================== VIEWER -->
+  <section class="panel lab-view" aria-labelledby="viewTitle">
+    <div class="panel-head">
+      <h2 id="viewTitle">3D form</h2>
+      <div class="btn-row tight">
+        <div class="seg small" role="group" aria-label="Preview detail">
+          <label><input type="radio" name="detail" value="0"><span>Low</span></label>
+          <label><input type="radio" name="detail" value="1" checked><span>Medium</span></label>
+          <label><input type="radio" name="detail" value="2"><span>High</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" role="img" aria-label="Three-dimensional preview of the form. Drag to orbit, scroll to zoom.">
+      <p class="stage-msg" id="stageMsg" hidden></p>
+    </div>
+
+    <div class="view-foot">
+      <p class="value" id="formCaption"></p>
+      <div class="btn-row">
+        <button class="btn" id="animBtn" type="button" aria-pressed="true">Freeze</button>
+        <button class="btn" id="peakBtn" type="button">Freeze at peak</button>
+        <button class="btn ghost" id="viewReset" type="button">Reset view</button>
+      </div>
+    </div>
+    <p class="hint" id="animHint"></p>
+    <p class="hint">Drag to orbit, scroll or pinch to zoom, right-drag to pan. These are mathematical models of standing waves, not recordings: they show the idealised shape.</p>
+  </section>
+
+  <!-- ================================================================== 2D -->
+  <section class="panel lab-flat" aria-labelledby="flatTitle">
+    <div class="panel-head"><h2 id="flatTitle">2D pattern</h2></div>
+    <div class="plate-frame">
+      <canvas class="plate" id="flat" role="img" aria-label="Two-dimensional nodal pattern for the current form"></canvas>
+    </div>
+    <p class="hint" id="flatCaption"></p>
+    <div class="field" id="sliceField">
+      <div class="field-head">
+        <label class="label" for="slice">Slice height</label>
+        <output class="label" id="sliceOut" for="slice">50%</output>
+      </div>
+      <input class="range" id="slice" type="range" min="0" max="100" step="1" value="50">
+    </div>
+  </section>
+
+  <!-- =============================================================== PRINT -->
+  <section class="panel lab-print" aria-labelledby="printTitle">
+    <div class="panel-head">
+      <h2 id="printTitle">Print</h2>
+      <span class="label" id="printState">Not built</span>
+    </div>
+
+    <div class="form-grid three">
+      <div class="field"><label class="label" for="pSize" id="pSizeLabel">Width, mm</label><input class="input" id="pSize" type="number" inputmode="decimal" min="10" max="400" step="1" value="80"></div>
+      <div class="field"><label class="label" for="pBase" id="pBaseLabel">Base, mm</label><input class="input" id="pBase" type="number" inputmode="decimal" min="0" max="50" step="0.1" value="2"></div>
+      <div class="field" id="pWallField"><label class="label" for="pWall">Wall, mm</label><input class="input" id="pWall" type="number" inputmode="decimal" min="0.2" max="20" step="0.1" value="2"></div>
+    </div>
+    <p class="hint" id="printHint"></p>
+
+    <div class="field">
+      <label class="label" for="pDetail">Export detail</label>
+      <select class="input" id="pDetail">
+        <option value="0">Standard</option>
+        <option value="1" selected>Fine</option>
+        <option value="2">Ultra (large file)</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn primary grow" id="buildBtn" type="button">Check and build</button>
+      <button class="btn" id="stlBtn" type="button" disabled>Download STL</button>
+    </div>
+
+    <ul class="checks" id="checks" aria-live="polite"></ul>
+    <dl class="facts print-facts" id="printFacts" hidden>
+      <div><dt>Size</dt><dd id="factSize">--</dd></div>
+      <div><dt>Volume</dt><dd id="factVolume">--</dd></div>
+      <div><dt>Triangles</dt><dd id="factTris">--</dd></div>
+      <div><dt>File</dt><dd id="factFile">--</dd></div>
+    </dl>
+    <p class="notice" id="printMsg" role="status" hidden></p>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · phase two · models of standing waves, idealised</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/chladni.js"></script>
+<script src="js/core/forms.js"></script>
+<script src="js/core/mesh.js"></script>
+<script src="js/audio/engine.js"></script>
+<script src="js/store/presets.js"></script>
+<script src="vendor/three.bundle.js"></script>
+<script src="js/ui/plateview.js"></script>
+<script src="js/ui/viewer.js"></script>
+<script src="js/ui/lab.js"></script>
+</body>
+</html>
