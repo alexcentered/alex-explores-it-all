@@ -349,6 +349,7 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .seg input:checked + span { background: var(--solid); color: var(--on-solid); }
 .seg input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
 .seg.small span { min-height: 26px; padding: 3px 12px; font-size: 11px; }
+#shapeSeg span { padding: 6px 4px; }
 .seg-field { gap: 7px; display: flex; flex-direction: column; }
 
 /* Checkbox */
@@ -467,6 +468,7 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
   overflow: hidden;
 }
 .plate { display: block; width: 100%; height: 100%; }
+.plate-frame.round { border-radius: 50%; }
 .plate-bolt { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--bg); box-shadow: 0 0 0 3px var(--glass-raised); }
 .sim-read { display: flex; justify-content: space-between; gap: 16px; }
 .sim-read .value { font-variant-numeric: tabular-nums; }
@@ -544,6 +546,9 @@ a.entry-photo-link { display: block; border-radius: 9px; }
 }
 .dialog::backdrop { background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .dialog[open] { display: flex; flex-direction: column; gap: 16px; }
+.dialog.wide { width: min(720px, calc(100vw - 32px)); }
+.camera-frame { border: 1px solid var(--line); border-radius: 12px; background: #000; overflow: hidden; aspect-ratio: 4 / 3; }
+.camera-frame video { display: block; width: 100%; height: 100%; object-fit: contain; }
 .keys { display: flex; flex-direction: column; }
 .keys div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .keys dd { font-size: 12.5px; color: var(--fg-soft); text-align: right; }

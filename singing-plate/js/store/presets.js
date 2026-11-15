@@ -7,7 +7,7 @@
  * memory and says so, rather than failing silently.
  *
  * Record shape (schema 1). Phase two's 3D lab opens these same records.
- *   { id, schema, name, freq, waveform, notes, photo: Blob|null,
+ *   { id, schema, name, freq, waveform, notes, medium, photo: Blob|null,
  *     mode: string|null, plate: object|null, createdAt, updatedAt }
  */
 (function (root) {
@@ -21,6 +21,7 @@
   var NOTES_MAX = 4000;
   var PHOTO_MAX_EDGE = 1280;
   var WAVEFORMS = ['sine', 'triangle', 'square'];
+  var MEDIA = ['sand', 'salt', 'semolina', 'water', 'cornflour', 'other'];
 
   function newId() {
     if (root.crypto && root.crypto.randomUUID) return root.crypto.randomUUID();
@@ -40,6 +41,7 @@
       freq: freq,
       waveform: WAVEFORMS.indexOf(r.waveform) === -1 ? 'sine' : r.waveform,
       notes: String(r.notes || '').slice(0, NOTES_MAX),
+      medium: MEDIA.indexOf(r.medium) === -1 ? 'sand' : r.medium,
       photo: r.photo instanceof Blob ? r.photo : null,
       mode: typeof r.mode === 'string' ? r.mode.slice(0, 24) : null,
       plate: r.plate && typeof r.plate === 'object' ? SP.chladni.sanitizePlate(r.plate) : null,
@@ -215,4 +217,5 @@
 
   SP.Store = Store;
   SP.photos = { shrink: shrinkPhoto };
+  SP.MEDIA = MEDIA;
 })(typeof self !== 'undefined' ? self : this);

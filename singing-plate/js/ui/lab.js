@@ -10,7 +10,9 @@
   'use strict';
 
   var SP = root.SP;
-  var F = SP.freq, safety = SP.safety, chladni = SP.chladni, forms = SP.forms, meshes = SP.mesh;
+  var F = SP.freq, safety = SP.safety, chladni = SP.chladni, disc = SP.disc, forms = SP.forms, meshes = SP.mesh;
+  var SHAPES = ['plate', 'disc', 'sphere', 'room'];
+  var DISC_SEGS = 3;              // a disc has this many segments round per ring outward
   var CONSOLE_KEY = 'singing-plate:v1';
   var LAB_KEY = 'singing-plate:lab:v1';
   var FLAT_SIZE = 160;
@@ -19,8 +21,8 @@
   var RIDGE_HEIGHT = 0.4;         // sand lines are low ridges, not walls
 
   // Preview stays light enough to animate; export is a separate, finer build.
-  var PREVIEW = { plate: [64, 112, 176], sphere: [32, 56, 88], room: [40, 64, 88] };
-  var EXPORT = { plate: [160, 256, 384], sphere: [96, 160, 256], room: [48, 72, 96] };
+  var PREVIEW = { plate: [64, 112, 176], disc: [24, 40, 64], sphere: [32, 56, 88], room: [40, 64, 88] };
+  var EXPORT = { plate: [160, 256, 384], disc: [64, 112, 176], sphere: [96, 160, 256], room: [48, 72, 96] };
 
   function $(id) { return document.getElementById(id); }
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -38,6 +40,7 @@
     source: 'freq',
     freq: 843.2,
     plate: { m: 4, n: 2, sign: 1 },
+    disc: { n: 3, s: 1 },
     sphere: { l: 5, m: 3, radiusMm: 1 },
     room: { n: [2, 1, 0], blend: true, sideCm: 34.3 },
     relief: 'wave',
@@ -47,6 +50,7 @@
     exportDetail: 1,
     print: {
       plate: { size: 80, base: 2, wall: 2 },
+      disc: { size: 80, base: 2, wall: 2 },
       sphere: { size: 60, base: 6, wall: 2 },
       room: { size: 60, base: 2, wall: 2.4 }
     }
@@ -83,7 +87,8 @@
     state.freq = F.sanitize(consoleSettings.freq, state.freq);
 
     var s = readJson(LAB_KEY);
-    if (['plate', 'sphere', 'room'].indexOf(s.shape) !== -1) state.shape = s.shape;
+    if (SHAPES.indexOf(s.shape) !== -1) state.shape = s.shape;
+    if (s.disc) state.disc = disc.sanitizeMode(s.disc.n, s.disc.s);
     if (s.source === 'freq' || s.source === 'mode') state.source = s.source;
     if (s.freq !== undefined) state.freq = F.sanitize(s.freq, state.freq);
     if (s.plate) {
@@ -106,7 +111,7 @@
     state.detail = num(s.detail, 1, 0, 2) | 0;
     state.slice = num(s.slice, 0.5, 0, 1);
     state.exportDetail = num(s.exportDetail, 1, 0, 2) | 0;
-    ['plate', 'sphere', 'room'].forEach(function (shape) {
+    SHAPES.forEach(function (shape) {
       var src = s.print && s.print[shape];
       if (!src) return;
       var dst = state.print[shape];
@@ -129,6 +134,16 @@
   /* ------------------------------------------------- which wave is it */
 
   function plateC() { return chladni.plateConstant(plateSetup); }
+
+  /* The console's plate, read as a round one of the same size, thickness and metal. */
+  function roundPlate() {
+    return chladni.sanitizePlate({
+      shape: 'circle', sideCm: plateSetup.sideCm, thicknessMm: plateSetup.thicknessMm,
+      material: plateSetup.material, trim: plateSetup.trim
+    });
+  }
+
+  function isFlat(shape) { return shape === 'plate' || shape === 'disc'; }
 
   /*
    * Decide the standing wave from the controls. In frequency mode the
@@ -158,6 +173,25 @@
             (state.plate.sign < 0 ? 'antisymmetric' : 'symmetric') +
             ' · resonates near ' + w.freq.toFixed(0) + ' Hz on your plate';
       }
+    } else if (state.shape === 'disc') {
+      var round = roundPlate();
+      if (byFreq) {
+        // A driver at the centre can only raise rings, so frequency picks a ring count.
+        var ring = chladni.nearestMode(disc.modeTable(round, 1, 20000), state.freq);
+        w.numbers = [0, ring ? ring.s : 1];
+        w.caption = 'Round plate driven at ' + F.formatHz(state.freq) + ' Hz' +
+          (ring ? ' · nearest mode: ' + ring.label + ' at ' + ring.f.toFixed(0) + ' Hz' : '');
+      } else {
+        var dm = disc.findMode(round, state.disc.n, state.disc.s);
+        w.discMode = dm;
+        w.numbers = dm ? [dm.n, dm.s] : [state.disc.n, state.disc.s];
+        w.empty = !dm;
+        if (dm) w.freq = dm.f;
+        w.caption = dm
+          ? 'Round plate mode: ' + plural(dm.n, 'nodal diameter') + ', ' + plural(dm.s, 'nodal circle') +
+            ' · resonates near ' + dm.f.toFixed(0) + ' Hz on your plate'
+          : 'That mode is out of range for this plate.';
+      }
     } else if (state.shape === 'sphere') {
       var R = state.sphere.radiusMm;
       var l = byFreq ? forms.dropletDegree(state.freq, R) : state.sphere.l;
@@ -181,6 +215,7 @@
   }
 
   function trim(n) { return String(Number(Number(n).toFixed(1))); }
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
   /* --------------------------------------------------------- geometry */
 
@@ -203,10 +238,66 @@
       return { re: re, im: im, peak: Math.sqrt(peak) || 1, rms: Math.sqrt(sumSq / re.length) || 1,
         heights: new Float32Array(res * res) };
     }
+    if (wave.shape === 'disc') return sampleDisc(res);
     if (wave.shape === 'sphere') {
       return { values: forms.sphereHarmonic(wave.numbers[0], wave.numbers[1], res, res * 2) };
     }
     return { field: forms.roomField(wave.numbers, wave.blend, res) };
+  }
+
+  /*
+   * A round plate's wave is a profile from centre to rim, times cos(n theta).
+   * Sampled here once per ring; the angle is applied when heights are made.
+   */
+  function sampleDisc(rings) {
+    var n = wave.numbers[0];
+    var re, im = null;
+    if (state.source === 'freq') {
+      var resp = disc.radialResponse(wave.freq, roundPlate());
+      re = resp ? resp.re : new Float32Array(disc.PROFILE_SAMPLES);
+      im = resp ? resp.im : null;
+    } else {
+      re = wave.discMode ? disc.modeProfile(wave.discMode) : new Float32Array(disc.PROFILE_SAMPLES);
+    }
+    var ringRe = new Float32Array(rings + 1), ringIm = im ? new Float32Array(rings + 1) : null;
+    var peak = 0, sum = 0, area = 0;
+    for (var r = 0; r <= rings; r++) {
+      var rho = r / rings;
+      ringRe[r] = disc.sampleProfile(re, rho);
+      if (im) ringIm[r] = disc.sampleProfile(im, rho);
+      var m2 = ringRe[r] * ringRe[r] + (im ? ringIm[r] * ringIm[r] : 0);
+      if (m2 > peak) peak = m2;
+      sum += m2 * rho; area += rho;
+    }
+    // Round the plate, cos^2(n theta) averages to a half (or to one when n = 0).
+    var rms = Math.sqrt(sum / area * (n > 0 ? 0.5 : 1)) || 1;
+    return { n: n, re: ringRe, im: ringIm, profile: re, profileIm: im, peak: Math.sqrt(peak) || 1, rms: rms,
+      heights: new Float32Array(1 + rings * rings * DISC_SEGS) };
+  }
+
+  /* Disc heights in 0..1: centre first, then ring by ring outward. */
+  function discHeights(data, ph, rings) {
+    var segs = rings * DISC_SEGS;
+    var h = data.heights, n = data.n;
+    var lines = state.relief === 'lines';
+    var c = Math.cos(ph) / data.peak, s = Math.sin(ph) / data.peak, w = RIDGE_WIDTH * data.rms;
+    var cosN = new Float32Array(segs);
+    for (var k = 0; k < segs; k++) cosN[k] = Math.cos(n * 2 * Math.PI * k / segs);
+    for (var r = 0; r <= rings; r++) {
+      var re = data.re[r], im = data.im ? data.im[r] : 0;
+      var count = r === 0 ? 1 : segs;
+      var start = r === 0 ? 0 : 1 + (r - 1) * segs;
+      for (k = 0; k < count; k++) {
+        var a = r === 0 ? (n === 0 ? 1 : 0) : cosN[k];
+        if (lines) {
+          var mag = Math.sqrt(re * re + im * im) * Math.abs(a) / w;
+          h[start + k] = Math.exp(-mag * mag);
+        } else {
+          h[start + k] = 0.5 + 0.5 * a * (re * c - im * s);
+        }
+      }
+    }
+    return h;
   }
 
   /* Plate heights in 0..1 for the current relief style and phase. */
@@ -233,6 +324,11 @@
     return { width: p.size, base: p.base, relief: Math.max(0.01, relief) };
   }
 
+  function discOptions() {
+    var o = plateOptions();
+    return { diameter: o.width, base: o.base, relief: o.relief };
+  }
+
   function sphereOptions(ph) {
     var p = printSettings();
     return { diameter: p.size, amplitude: state.amp * 0.45 * Math.cos(ph), cut: p.base };
@@ -245,6 +341,7 @@
    */
   function buildMesh(data, res, ph, forPrint) {
     if (wave.shape === 'plate') return meshes.buildPlate(plateHeights(data, ph), res, plateOptions());
+    if (wave.shape === 'disc') return meshes.buildDisc(discHeights(data, ph, res), res, res * DISC_SEGS, discOptions());
     if (wave.shape === 'sphere') return meshes.buildSphere(data.values, res, res * 2, sphereOptions(ph));
     var p = printSettings();
     var wall = forPrint ? p.wall : Math.max(p.wall, 2 * p.size / res);
@@ -253,11 +350,11 @@
 
   /* Does this form move? Node sheets and sand lines are exactly what stays still. */
   function canAnimate() {
-    return wave && !wave.empty && (wave.shape === 'sphere' || (wave.shape === 'plate' && state.relief === 'wave'));
+    return wave && !wave.empty && (wave.shape === 'sphere' || (isFlat(wave.shape) && state.relief === 'wave'));
   }
 
   function peakPhaseNow() {
-    if (wave.shape === 'plate' && preview && preview.data.im) return forms.peakPhase(preview.data.re, preview.data.im);
+    if (isFlat(wave.shape) && preview && preview.data.im) return forms.peakPhase(preview.data.re, preview.data.im);
     return 0;
   }
 
@@ -282,6 +379,9 @@
     if (wave.shape === 'plate') {
       meshes.updatePlate(preview.mesh, plateHeights(preview.data, phase), preview.res, plateOptions());
       viewer.updatePositions(preview.mesh.positions);
+    } else if (wave.shape === 'disc') {
+      meshes.updateDisc(preview.mesh, discHeights(preview.data, phase, preview.res), preview.res, preview.res * DISC_SEGS, discOptions());
+      viewer.updatePositions(preview.mesh.positions);
     } else {
       var m = meshes.buildSphere(preview.data.values, preview.res, preview.res * 2, sphereOptions(phase));
       preview.mesh.positions.set(m.positions);
@@ -297,6 +397,13 @@
       if (state.source === 'freq') map = chladni.field(wave.freq, plateC(), FLAT_SIZE);
       else map = forms.magnitudeMap(chladni.modeShape(wave.numbers[0], wave.numbers[1], wave.sign, FLAT_SIZE));
       caption = 'Nodal lines on the plate: where the sand settles on the real rig.';
+    } else if (wave.shape === 'disc') {
+      var d = preview.data, lineWidth = d.rms;
+      map = disc.rasterize(function (r, theta) {
+        var re = disc.sampleProfile(d.profile, r), im = d.profileIm ? disc.sampleProfile(d.profileIm, r) : 0;
+        return Math.sqrt(re * re + im * im) * Math.abs(Math.cos(d.n * theta)) / lineWidth;
+      }, FLAT_SIZE, null, d.n > 0);
+      caption = 'Nodal lines on the round plate: rings from a centre drive, plus spokes when a mode has nodal diameters.';
     } else if (wave.shape === 'sphere') {
       map = forms.sphereMap(wave.numbers[0], wave.numbers[1], FLAT_SIZE);
       caption = 'The still lines on the ball, unrolled like a world map: once round the axis across, pole to pole down.';
@@ -304,6 +411,7 @@
       map = forms.roomSlice(wave.numbers, wave.blend, FLAT_SIZE, state.slice);
       caption = 'Still lines on a horizontal slice through the room. Move the slice to walk up through the node sheets.';
     }
+    el.flatFrame.classList.toggle('round', wave.shape === 'disc');
     flat.setField(map, FLAT_SIZE);
     flat.frame();
     el.flatCaption.textContent = caption;
@@ -312,7 +420,8 @@
   /* ---------------------------------------------------------- readouts */
 
   var SHAPE_HINT = {
-    plate: 'The Chladni pattern lifted into relief.',
+    plate: 'The Chladni pattern of a square plate, lifted into relief.',
+    disc: 'A round plate: rings from the centre drive, stars when it has nodal diameters.',
     sphere: 'Standing waves on a ball, the shapes a vibrating droplet takes.',
     room: 'Standing waves inside a box, drawn as the surfaces where the air stays still.'
   };
@@ -335,7 +444,7 @@
     el.presetSelect.disabled = !byFreq || el.presetSelect.options.length < 2;
 
     // Mode numbers: what they are called, how many, and which are yours to set.
-    var labels = { plate: ['m', 'n', ''], sphere: ['Degree', 'Order', ''], room: ['nx', 'ny', 'nz'] }[shape];
+    var labels = { plate: ['m', 'n', ''], disc: ['Diameters', 'Circles', ''], sphere: ['Degree', 'Order', ''], room: ['nx', 'ny', 'nz'] }[shape];
     el.modeALabel.textContent = labels[0];
     el.modeBLabel.textContent = labels[1];
     el.modeCLabel.textContent = labels[2];
@@ -343,16 +452,20 @@
     el.modeGrid.className = 'form-grid ' + (shape === 'room' ? 'three' : '');
     el.modeA.min = shape === 'sphere' ? forms.DEGREE_MIN : 0;
     el.modeA.max = shape === 'sphere' ? forms.DEGREE_MAX : 12;
-    el.modeB.max = shape === 'sphere' ? forms.DEGREE_MAX : 12;
+    el.modeB.max = shape === 'sphere' ? forms.DEGREE_MAX : shape === 'disc' ? disc.S_MAX : 12;
     el.modeA.disabled = byFreq;
     el.modeB.disabled = byFreq && shape !== 'sphere';
     el.modeC.disabled = byFreq;
     el.modeHint.textContent = !byFreq
-      ? (shape === 'sphere' ? 'Degree sets how many ripples; order sets how many times they repeat round the axis.' : 'Whole numbers: how many half-waves fit along each direction.')
-      : (shape === 'sphere' ? 'Degree follows the frequency. Order is yours: how many times the pattern repeats round the axis.' : 'Set by the frequency.');
+      ? (shape === 'sphere' ? 'Degree sets how many ripples; order sets how many times they repeat round the axis.'
+        : shape === 'disc' ? 'Diameters are straight still lines through the centre; circles are still rings.'
+        : 'Whole numbers: how many half-waves fit along each direction.')
+      : (shape === 'sphere' ? 'Degree follows the frequency. Order is yours: how many times the pattern repeats round the axis.'
+        : shape === 'disc' ? 'Set by the frequency. A centre drive raises rings only; choose Mode numbers for the star shapes.'
+        : 'Set by the frequency.');
 
     // Symmetry means something different for each shape.
-    el.symmetryField.hidden = shape === 'sphere' || (shape === 'plate' && byFreq);
+    el.symmetryField.hidden = shape === 'sphere' || shape === 'disc' || (shape === 'plate' && byFreq);
     if (shape === 'plate') {
       el.symALabel.textContent = 'Symmetric';
       el.symBLabel.textContent = 'Antisymmetric';
@@ -365,7 +478,7 @@
       el.symmetryHint.textContent = 'A cube rings at the same pitch whichever way the wave is turned. Blending those turns bends the flat node planes into curved sheets.';
     }
 
-    el.physField.hidden = shape === 'plate';
+    el.physField.hidden = isFlat(shape);
     if (shape === 'sphere') {
       el.physLabel.textContent = 'Drop radius, mm';
       el.physInput.min = 0.2; el.physInput.max = 20; el.physInput.step = 0.1;
@@ -378,7 +491,7 @@
       el.physHint.textContent = 'Links frequency to shape: smaller rooms ring higher.';
     }
 
-    el.reliefField.hidden = shape !== 'plate';
+    el.reliefField.hidden = !isFlat(shape);
     el.reliefHint.textContent = state.relief === 'lines'
       ? 'Raises the lines where sand gathers: the Chladni figure itself, as a ridge.'
       : 'The plate caught mid-swing: hills and hollows either side of the still lines.';
@@ -392,7 +505,7 @@
 
     // Print panel
     var p = printSettings();
-    el.pSizeLabel.textContent = { plate: 'Width, mm', sphere: 'Diameter, mm', room: 'Side, mm' }[shape];
+    el.pSizeLabel.textContent = { plate: 'Width, mm', disc: 'Diameter, mm', sphere: 'Diameter, mm', room: 'Side, mm' }[shape];
     el.pBaseLabel.textContent = shape === 'sphere' ? 'Flat base, mm' : 'Base, mm';
     el.pWallField.hidden = shape !== 'room';
     el.pSize.value = trim(p.size);
@@ -401,6 +514,7 @@
     el.pDetail.value = state.exportDetail;
     el.printHint.textContent = {
       plate: 'The base is the slab under the pattern. Relief adds ' + plateOptions().relief.toFixed(1) + ' mm on top, set by Amplitude.',
+      disc: 'The base is the slab under the pattern. Relief adds ' + plateOptions().relief.toFixed(1) + ' mm on top, set by Amplitude.',
       sphere: 'Flat base trims this much off the bottom so the ball stands on the print bed. 0 leaves it round.',
       room: 'Node sheets have no thickness of their own, so the wall gives them one. The base is a slab that ties loose sheets together.'
     }[shape];
@@ -426,8 +540,8 @@
     el.animBtn.disabled = el.peakBtn.disabled = !moves;
     el.animBtn.textContent = animating && moves ? 'Freeze' : 'Animate';
     el.animBtn.setAttribute('aria-pressed', animating && moves ? 'true' : 'false');
-    el.animHint.hidden = moves;
-    el.animHint.textContent = wave.empty ? '' : wave.shape === 'room'
+    el.animHint.hidden = moves || wave.empty;
+    el.animHint.textContent = wave.shape === 'room'
       ? 'Nothing to animate here: node sheets are exactly the places where the air does not move.'
       : 'Nothing to animate here: sand lines mark exactly the places where the plate does not move.';
 
@@ -486,7 +600,7 @@
         var ins = meshes.inspect(mesh);
         var p = printSettings();
         var facts = {};
-        if (wave.shape === 'plate') facts.thinnest = { mm: p.base, label: 'The base slab' };
+        if (isFlat(wave.shape)) facts.thinnest = { mm: p.base, label: 'The base slab' };
         if (wave.shape === 'room') { facts.thinnest = { mm: p.wall, label: 'The wall' }; facts.cellMm = p.size / res; }
         var verdict = meshes.printChecks(ins, facts);
         renderChecks(verdict, ins);
@@ -600,6 +714,9 @@
       if (records[i].id !== id) continue;
       state.source = 'freq';
       state.freq = records[i].freq;
+      // A pattern logged on a round plate opens as a disc, any other as a square plate.
+      state.shape = records[i].plate && records[i].plate.shape === 'circle' ? 'disc' : 'plate';
+      refit = true;
       el.presetSelect.value = id;
       syncControls();
       changed(false);
@@ -660,7 +777,7 @@
       'modeCField', 'modeHint', 'symmetryField', 'symALabel', 'symBLabel', 'symmetryHint', 'physField',
       'physLabel', 'physInput', 'physHint', 'reliefField', 'reliefHint', 'ampField', 'amp', 'ampOut',
       'hearBtn', 'labVolume', 'labVolumeOut', 'stage', 'stageMsg', 'formCaption', 'animBtn', 'peakBtn',
-      'viewReset', 'animHint', 'flat', 'flatCaption', 'sliceField', 'slice', 'sliceOut', 'pSize',
+      'viewReset', 'animHint', 'flat', 'flatFrame', 'flatCaption', 'sliceField', 'slice', 'sliceOut', 'pSize',
       'pSizeLabel', 'pBase', 'pBaseLabel', 'pWall', 'pWallField', 'printHint', 'pDetail', 'buildBtn',
       'stlBtn', 'checks', 'printFacts', 'factSize', 'factVolume', 'factTris', 'factFile', 'printMsg',
       'printState'
@@ -692,6 +809,7 @@
       // Carry the current wave across, so switching mode never jumps the form.
       if (v === 'mode' && wave) {
         if (state.shape === 'plate') { state.plate.m = wave.numbers[0]; state.plate.n = wave.numbers[1]; state.plate.sign = 1; }
+        if (state.shape === 'disc') state.disc = disc.sanitizeMode(wave.numbers[0], wave.numbers[1]);
         if (state.shape === 'sphere') { state.sphere.l = wave.numbers[0]; state.sphere.m = wave.numbers[1]; }
         if (state.shape === 'room') state.room.n = wave.numbers.slice();
       } else if (v === 'freq' && wave && wave.audible) {
@@ -720,6 +838,8 @@
       if (state.shape === 'plate') {
         state.plate.m = num(a, state.plate.m, 0, 12) | 0;
         state.plate.n = num(b, state.plate.n, 0, 12) | 0;
+      } else if (state.shape === 'disc') {
+        state.disc = disc.sanitizeMode(num(a, state.disc.n, 0, disc.N_MAX), num(b, state.disc.s, 0, disc.S_MAX));
       } else if (state.shape === 'sphere') {
         if (state.source === 'mode') state.sphere.l = num(a, state.sphere.l, forms.DEGREE_MIN, forms.DEGREE_MAX) | 0;
         state.sphere.m = num(b, state.sphere.m, 0, forms.DEGREE_MAX) | 0;
@@ -808,11 +928,7 @@
       records = list;
       fillPresets();
       var m = /^#log=(.+)$/.exec(root.location.hash);
-      if (m && openPreset(decodeURIComponent(m[1]))) {
-        state.shape = 'plate';
-        syncControls();
-        changed(true);
-      }
+      if (m) openPreset(decodeURIComponent(m[1]));
       // The link has done its job: drop it so a reload keeps the current form.
       if (m && root.history && root.history.replaceState) {
         try { root.history.replaceState(null, '', root.location.pathname + root.location.search); } catch (e) { /* not fatal */ }

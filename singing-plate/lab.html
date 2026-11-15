@@ -50,6 +50,7 @@
       <legend class="label">Shape</legend>
       <div class="seg" id="shapeSeg">
         <label><input type="radio" name="shape" value="plate" checked><span>Plate</span></label>
+        <label><input type="radio" name="shape" value="disc"><span>Disc</span></label>
         <label><input type="radio" name="shape" value="sphere"><span>Sphere</span></label>
         <label><input type="radio" name="shape" value="room"><span>Room</span></label>
       </div>
@@ -164,7 +165,7 @@
   <!-- ================================================================== 2D -->
   <section class="panel lab-flat" aria-labelledby="flatTitle">
     <div class="panel-head"><h2 id="flatTitle">2D pattern</h2></div>
-    <div class="plate-frame">
+    <div class="plate-frame" id="flatFrame">
       <canvas class="plate" id="flat" role="img" aria-label="Two-dimensional nodal pattern for the current form"></canvas>
     </div>
     <p class="hint" id="flatCaption"></p>
@@ -221,6 +222,7 @@
 <script src="js/core/freq.js"></script>
 <script src="js/core/safety.js"></script>
 <script src="js/core/chladni.js"></script>
+<script src="js/core/disc.js"></script>
 <script src="js/core/forms.js"></script>
 <script src="js/core/mesh.js"></script>
 <script src="js/audio/engine.js"></script>
