@@ -27,6 +27,7 @@ Test with headphones at low volume before connecting the amplifier.
 | Sweep | Glide between two frequencies at a set rate in Hz per second. Lock freezes the sweep while the tone keeps holding; resume carries on from wherever you nudged to |
 | Simulator | Predicted sand pattern for the current frequency on a square or round plate, a list of predicted resonances to jump to, and one-button alignment of the model to your real plate |
 | Pattern log | Save a frequency with a name, notes, the medium on the plate and a photo, taken with the camera or chosen from files. Recall, edit, delete, export and import |
+| Life signals | Who else signals at the frequency being played: sixteen species drawn as bands on a shared frequency scale, with a Tune button for each |
 | Theme | Dark by default, light on request, monochrome throughout |
 
 ## Keys
@@ -88,6 +89,56 @@ Set **Shape** to Round in Plate setup and the size becomes a diameter. A round p
 
 Swap the sand for a shallow dish of water and the surface breaks into standing ripples (Faraday waves) once the plate is shaking hard enough. They oscillate at half the drive frequency, and their spacing follows from gravity and surface tension, so the console shows the spacing to expect for the current frequency: measure it against your photo. This holds for water-like liquids a few millimetres deep. Thick mixes such as cornflour behave differently and are not modelled; log them with the Medium field and let the photo speak.
 
+## Life signals
+
+The console lists the bands other living things are known to signal in, drawn against the same 20 Hz to 5 kHz scale as the dial. A line marks the frequency being played, the rows it crosses light up, and **Tune** jumps to a representative frequency in any band.
+
+| Who | Band | What it is |
+| --- | --- | --- |
+| Blue and fin whales | 10 to 40 Hz | Calls, and the fin whale's 20 Hz pulse |
+| African elephant | 12 to 35 Hz | Contact rumbles, mostly below human hearing |
+| American alligator | 18 to 20 Hz | Courtship bellow that raises Faraday waves on the water |
+| Domestic cat | 25 to 150 Hz | Purr |
+| Plainfin midshipman fish | 80 to 120 Hz | Mating hum |
+| Humpback whale | 80 Hz to 4 kHz | Song |
+| Human | 85 to 255 Hz | Speaking pitch |
+| Giraffe | about 92 Hz | Night hum. Purpose unknown |
+| American bullfrog | 200 to 400 Hz | Advertisement call |
+| Honeybee | 200 to 500 Hz | Waggle-dance buzz and queen piping |
+| Corn seedling roots | 200 to 300 Hz | Reported bending toward a tone. Early evidence |
+| Beach evening primrose | 200 to 500 Hz | Nectar sweetened after bee-wing sound. Early evidence |
+| Yellow fever mosquito | 400 Hz to 1.2 kHz | Courtship flight-tone duet |
+| Songbirds | 1 to 8 kHz | Song |
+| Spring peeper frog | 2.5 to 3.5 kHz | Peep |
+| Field cricket | 4.5 to 5.2 kHz | Calling song |
+
+Out of the console's reach, and listed for reference: bottlenose dolphin signature whistles (7 to 15 kHz), rat calls (22 kHz alarm, 50 kHz play), bat echolocation (mostly 20 to 100 kHz), and the radio frequencies used to listen for and signal to life beyond Earth (the hydrogen line at 1,420.4 MHz; the 1974 Arecibo message at 2,380 MHz). Nobody has answered the last of those.
+
+**Read this before calling it communication.** The bands are published measurements, rounded, and they vary between individuals, populations and studies. A steady tone in an animal's band is something it can sense, and in a few cases will respond to: female crickets walk toward a speaker playing the male's tone, and male mosquitoes are drawn to the female's flight tone. That is not the same as speaking its language. Real signals carry rhythm, pulses and sweeps that one pure tone does not. The plant entries rest on a small number of studies and are labelled as early evidence.
+
+**Go gently.** Keep the level low around animals, stop if one seems distressed, and do not play calls to wild animals: it can stress them and disrupt breeding, and it is restricted in many parks and for protected species.
+
+Sources for the bands:
+
+- Whales: [list of whale vocalizations](https://en.wikipedia.org/wiki/List_of_whale_vocalizations), [DOSITS on baleen whale calls](https://dosits.org/changes-in-baleen-whale-vocalizations), [National Geographic on humpback sound](https://www.nationalgeographic.com/animals/article/151207-humpback-whales-sounds-noises-oceans-animals)
+- Elephant: [ElephantVoices, acoustic communication](https://www.elephantvoices.org/elephant-acoustic-communication)
+- Alligator: [Science News on Moriarty and Holt's measurements](https://www.sciencenews.org/article/gators-go-courtin-fancy-physics)
+- Cat: [Scientific American, why do cats purr](https://www.scientificamerican.com/article/why-do-cats-purr/)
+- Midshipman: [review of midshipman hearing and calls](https://pmc.ncbi.nlm.nih.gov/articles/PMC4342331)
+- Human: [voice frequency](https://en.wikipedia.org/wiki/Voice_frequency)
+- Giraffe: [Baotic et al. 2015, nocturnal humming](https://pmc.ncbi.nlm.nih.gov/articles/PMC4565008)
+- Frogs: [frog hearing and communication](https://en.wikipedia.org/wiki/Frog_hearing_and_communication), [calls of frogs and toads of the Northeast](https://musicofnature.com/calls-of-frogs-and-toads-of-the-northeast/) (the spring peeper band is from this field guide rather than a primary study)
+- Honeybee: [Bee Culture, sound generation and hearing](https://beeculture.com/?p=15114), [Apidologie review of queen piping](https://www.apidologie.org/articles/apido/pdf/1993/03/Apidologie_0044-8435_1993_24_3_ART0009.pdf)
+- Corn roots: [University of Western Australia on Gagliano's 2012 study](https://www.news.uwa.edu.au/201204034491/research/talking-plants)
+- Evening primrose: [Veits et al. 2019, Ecology Letters](https://kops.uni-konstanz.de/entities/publication/dfbbe604-b565-455a-98cb-d4783dd75568/full), [National Geographic coverage](https://www.nationalgeographic.com/science/article/flowers-can-hear-bees-and-make-their-nectar-sweeter)
+- Mosquito: [Cornell on Cator et al. 2009](https://news.cornell.edu/node/272570), [follow-up study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6375921/)
+- Songbirds: [Cornell Lab, All About Birds](https://www.allaboutbirds.org/news/?p=15841), [hearing in a small songbird](https://pubmed.ncbi.nlm.nih.gov/38656337/)
+- Cricket: [carrier frequency and female tuning in field crickets](https://pmc.ncbi.nlm.nih.gov/articles/PMC2500168)
+- Dolphin: [DOSITS on signature whistles](https://dosits.org/animals/use-of-sound/marine-mammal-communication/individual-specific-vocalizations)
+- Rat: [Panksepp, laughing rats](https://www.museumofplay.org/app/uploads/2022/01/2-3-article-laughing-rats-panksepp.pdf)
+- Beyond Earth: [SETI League on the water hole](https://setileague.org/general/waterhol.htm), [SETI Institute observations](https://seti.org/seti-institute/project/details/seti-observations), [the Arecibo message of November 1974](https://ui.adsabs.harvard.edu/abs/10.1016/0019-1035(75)90116-5/abstract)
+- Bats: the commonly quoted range, not checked against a source when this table was written
+
 ## The 3D lab
 
 Four shapes, each chosen either by frequency or directly by mode numbers:
@@ -138,6 +189,7 @@ js/core/            pure logic, no browser APIs: unit tested
   chladni.js          square plate model
   disc.js             round plate model (Bessel functions, free-edge modes)
   liquid.js           ripple spacing on a vibrated liquid
+  life.js             bands other species signal in
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by both pages

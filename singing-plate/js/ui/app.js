@@ -116,6 +116,7 @@
     renderCapture();
     renderNearest();
     renderGuard();
+    renderLife();
     simDirty = true;
   }
 
@@ -134,6 +135,87 @@
       note.textContent = 'Below 60 Hz with the guard off. Keep it quiet and keep it short: this is where drivers overheat.';
     }
     note.hidden = false;
+  }
+
+  /* ------------------------------------------------------------- life */
+
+  var lifeActive = null;
+
+  /* Build the species rows once; renderLife() then only moves the cursor and highlights. */
+  function buildLife() {
+    var life = SP.life;
+    var frag = document.createDocumentFragment();
+    life.SIGNALS.forEach(function (s) {
+      var li = make('li', 'life-row');
+      li.dataset.id = s.id;
+
+      var name = make('div');
+      name.appendChild(make('div', 'life-who', s.who));
+      name.appendChild(make('div', 'life-sub', s.signal + ' · ' + life.formatBand(s)));
+      if (s.evidence !== 'documented') name.appendChild(make('div', 'life-tag', life.EVIDENCE[s.evidence]));
+      li.appendChild(name);
+
+      var band = life.playable(s);
+      var track = make('div', 'life-track');
+      var bar = make('div', 'life-bar');
+      var left = F.freqToDial(band.lo) * 100, right = F.freqToDial(band.hi) * 100;
+      bar.style.left = left + '%';
+      bar.style.width = Math.max(0, right - left) + '%';
+      var open = (s.lo < band.lo ? 'lo ' : '') + (s.hi > band.hi ? 'hi' : '');
+      if (open.trim()) bar.dataset.open = open.trim();
+      track.appendChild(bar);
+      li.appendChild(track);
+
+      var tune = make('button', 'btn', 'Tune');
+      tune.type = 'button';
+      tune.dataset.tune = s.tune;
+      tune.setAttribute('aria-label', 'Tune to ' + s.tune + ' hertz, in the band of the ' + s.who);
+      li.appendChild(tune);
+
+      li.appendChild(make('p', 'life-note', s.note));
+      frag.appendChild(li);
+    });
+    el.lifeList.replaceChildren(frag);
+
+    var scale = document.createDocumentFragment();
+    [[20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k']].forEach(function (t) {
+      var tick = make('span', '', t[1]);
+      tick.style.left = F.freqToDial(t[0]) * 100 + '%';
+      scale.appendChild(tick);
+    });
+    el.lifeScale.replaceChildren(scale);
+
+    var beyond = document.createDocumentFragment();
+    life.BEYOND.forEach(function (b) {
+      var wrap = make('div');
+      var dt = make('dt', '', b.who + ' ');
+      dt.appendChild(make('span', '', '· ' + b.band));
+      wrap.appendChild(dt);
+      wrap.appendChild(make('dd', '', b.note));
+      beyond.appendChild(wrap);
+    });
+    el.lifeBeyond.replaceChildren(beyond);
+
+    el.lifeList.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tune]');
+      if (btn) setFrequency(Number(btn.dataset.tune));
+    });
+  }
+
+  /* Called on every frequency change, sweeps included, so it does as little as it can. */
+  function renderLife() {
+    if (!el.lifeList) return;
+    el.lifeList.style.setProperty('--cursor', (F.freqToDial(state.freq) * 100).toFixed(2) + '%');
+    var active = SP.life.activeAt(state.freq);
+    var key = active.map(function (s) { return s.id; }).join(',');
+    if (key === lifeActive) return;
+    lifeActive = key;
+    Array.prototype.forEach.call(el.lifeList.children, function (li) {
+      li.dataset.active = key.split(',').indexOf(li.dataset.id) !== -1 ? 'true' : 'false';
+    });
+    el.lifeNow.textContent = active.length
+      ? 'This frequency is in the band of: ' + active.map(function (s) { return s.who; }).join(', ') + '.'
+      : 'Nobody on this list signals at this frequency. Tune to a band below to see who does.';
   }
 
   /* ------------------------------------------------------------- tone */
@@ -958,6 +1040,7 @@
       'swFrom', 'swTo', 'swRate', 'swGo', 'swReset', 'swFill', 'swHead', 'swTicks', 'swEta',
       'swState', 'swSpan', 'swHint', 'plate', 'simMode', 'simModeHz', 'simDelta', 'scatterBtn',
       'jumpBtn', 'plShape', 'plSideLabel', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
+      'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond',
       'pMedium', 'cameraBtn', 'cameraDialog', 'cameraClose', 'cameraVideo', 'cameraPick', 'cameraPickField',
       'cameraMsg', 'cameraShoot',
       'modeList', 'modeCount', 'sortBtn', 'exportBtn', 'importInput', 'logForm', 'formTitle',
@@ -994,6 +1077,7 @@
     el.swRate.value = trimNumber(sweep.rate);
     el.lfGuard.checked = state.lfGuard;
 
+    buildLife();
     applyTheme(state.theme);
     setView(state.view);
     setVolume(state.volume);

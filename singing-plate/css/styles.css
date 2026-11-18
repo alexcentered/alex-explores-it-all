@@ -201,25 +201,26 @@ h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.14em; text-transform: 
   max-width: 1480px;
   margin: 0 auto;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "freq" "out" "sweep" "sim" "log" "brief";
+  grid-template-areas: "freq" "out" "sweep" "sim" "life" "log" "brief";
 }
 .freq { grid-area: freq; }
 .sim { grid-area: sim; }
 .out { grid-area: out; }
 .sweep { grid-area: sweep; }
+.life { grid-area: life; }
 .log { grid-area: log; }
 .brief { grid-area: brief; }
 
 @media (min-width: 760px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: "freq freq" "out sweep" "sim sim" "log log" "brief brief";
+    grid-template-areas: "freq freq" "out sweep" "sim sim" "life life" "log log" "brief brief";
   }
 }
 @media (min-width: 1180px) {
   .grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(380px, 0.95fr);
-    grid-template-areas: "freq freq sim" "out sweep sim" "log log log" "brief brief brief";
+    grid-template-areas: "freq freq sim" "out sweep sim" "life life life" "log log log" "brief brief brief";
     align-items: start;
   }
 }
@@ -496,6 +497,52 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .chip small { font-size: 10px; color: var(--mute); }
 .chip[aria-current="true"] { background: var(--solid); color: var(--on-solid); border-color: var(--solid); }
 .chip[aria-current="true"] small { color: inherit; opacity: 0.7; }
+
+/* ----------------------------------------------------------------- life */
+
+/* One row per species: name, its band drawn on a log frequency scale, and a tune button. */
+.life-list { display: flex; flex-direction: column; --cursor: 50%; }
+.life-row, .life-axis {
+  display: grid;
+  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+}
+.life-row { padding: 7px 8px; border-top: 1px solid var(--line); border-radius: 6px; }
+.life-row[data-active="true"] { background: var(--glass-raised); }
+.life-who { font-size: 13px; font-weight: 500; color: var(--fg-soft); }
+.life-row[data-active="true"] .life-who { color: var(--fg); font-weight: 700; }
+.life-sub { font-size: 11px; color: var(--mute); }
+.life-tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--caution); }
+.life-track { position: relative; height: 22px; }
+.life-track::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
+/* the frequency now playing, as one line down every row */
+.life-track::after { content: ""; position: absolute; top: -8px; bottom: -8px; left: var(--cursor); width: 1px; background: var(--fg); opacity: 0.55; }
+.life-bar { position: absolute; top: 6px; bottom: 6px; min-width: 5px; border-radius: 5px; background: var(--faint); }
+.life-row[data-active="true"] .life-bar { background: var(--fg); }
+/* a band that runs off the end of the console's range is left square at that end */
+.life-bar[data-open~="lo"] { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.life-bar[data-open~="hi"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.life-row .btn { min-height: 30px; padding: 4px 12px; font-size: 11px; }
+.life-note { grid-column: 1 / -1; font-size: 12px; line-height: 1.5; color: var(--mute); display: none; }
+.life-row[data-active="true"] .life-note { display: block; color: var(--fg-soft); }
+.life-axis { padding: 4px 8px 0; }
+.life-axis > span:last-child { width: 58px; }
+.life-scale { position: relative; height: 16px; }
+.life-scale span { position: absolute; transform: translateX(-50%); font-size: 10px; color: var(--faint); }
+.life-scale span:first-child { transform: none; }
+.life-scale span:last-child { transform: translateX(-100%); }
+.life-beyond { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px 28px; }
+.life-beyond dt { font-size: 13px; font-weight: 700; }
+.life-beyond dt span { font-weight: 400; color: var(--mute); }
+.life-beyond dd { font-size: 12px; line-height: 1.5; color: var(--fg-soft); }
+.life .hint b { color: var(--fg-soft); }
+@media (max-width: 620px) {
+  .life-row, .life-axis { grid-template-columns: minmax(0, 1fr) auto; }
+  .life-row .life-track { grid-column: 1 / -1; grid-row: 2; }
+  .life-axis > span { display: none; }
+  .life-axis .life-scale { grid-column: 1 / -1; }
+}
 
 /* ------------------------------------------------------------------ log */
 
