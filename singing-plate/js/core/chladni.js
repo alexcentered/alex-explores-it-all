@@ -30,7 +30,8 @@
     steel:     { label: 'Steel',     E: 200e9, rho: 7850, nu: 0.29 }
   };
 
-  var DEFAULT_PLATE = { sideCm: 24, thicknessMm: 1, material: 'aluminium', trim: 1 };
+  // sideCm is the side of a square plate, or the diameter of a round one.
+  var DEFAULT_PLATE = { shape: 'square', sideCm: 24, thicknessMm: 1, material: 'aluminium', trim: 1 };
   var DEFAULT_Q = 45;       // sharpness of each resonance
   var MAX_INDEX = 48;       // highest mode number ever summed
 
@@ -45,6 +46,7 @@
       return isFinite(n) ? clamp(n, lo, hi) : d;
     }
     return {
+      shape: src.shape === 'circle' ? 'circle' : 'square',
       sideCm: num(src.sideCm, DEFAULT_PLATE.sideCm, 5, 100),
       thicknessMm: num(src.thicknessMm, DEFAULT_PLATE.thicknessMm, 0.2, 10),
       material: MATERIALS[src.material] ? src.material : DEFAULT_PLATE.material,

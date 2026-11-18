@@ -109,6 +109,70 @@
     return mesh;
   }
 
+  /* --------------------------------------------------------------- disc */
+
+  /*
+   * A round plate in relief. heights holds the centre first, then `rings`
+   * circles of `segs` values each, working outward, all in 0..1.
+   * o.diameter, o.base and o.relief are in mm, as for buildPlate.
+   */
+  function buildDisc(heights, rings, segs, o) {
+    var R = o.diameter / 2;
+    var topCount = 1 + rings * segs;
+    var wallTop = topCount, wallBottom = topCount + segs, floorRing = topCount + 2 * segs;
+    var floorCentre = topCount + 3 * segs;
+    var positions = new Float32Array((floorCentre + 1) * 3);
+    var indices = new Uint32Array((segs + (rings - 1) * segs * 2 + segs * 2 + segs) * 3);
+    var r, c, t = 0;
+
+    positions[0] = R; positions[1] = R;
+    for (r = 1; r <= rings; r++) {
+      var rad = R * r / rings;
+      for (c = 0; c < segs; c++) {
+        var a = 2 * Math.PI * c / segs;
+        var p = (1 + (r - 1) * segs + c) * 3;
+        positions[p] = R + rad * Math.cos(a);
+        positions[p + 1] = R + rad * Math.sin(a);
+      }
+    }
+    var rim = 1 + (rings - 1) * segs;
+    for (c = 0; c < segs; c++) {
+      var x = positions[(rim + c) * 3], y = positions[(rim + c) * 3 + 1];
+      [wallTop, wallBottom, floorRing].forEach(function (start) {
+        positions[(start + c) * 3] = x;
+        positions[(start + c) * 3 + 1] = y;
+      });
+    }
+    positions[floorCentre * 3] = R; positions[floorCentre * 3 + 1] = R;
+
+    for (c = 0; c < segs; c++) {
+      var n = (c + 1) % segs;
+      indices[t++] = 0; indices[t++] = 1 + c; indices[t++] = 1 + n;
+      indices[t++] = wallBottom + c; indices[t++] = wallBottom + n; indices[t++] = wallTop + n;
+      indices[t++] = wallBottom + c; indices[t++] = wallTop + n; indices[t++] = wallTop + c;
+      indices[t++] = floorCentre; indices[t++] = floorRing + n; indices[t++] = floorRing + c;
+    }
+    for (r = 1; r < rings; r++) {
+      var inner = 1 + (r - 1) * segs, outer = inner + segs;
+      for (c = 0; c < segs; c++) {
+        var c2 = (c + 1) % segs;
+        indices[t++] = inner + c; indices[t++] = outer + c; indices[t++] = outer + c2;
+        indices[t++] = inner + c; indices[t++] = outer + c2; indices[t++] = inner + c2;
+      }
+    }
+    return updateDisc({ positions: positions, indices: indices }, heights, rings, segs, o);
+  }
+
+  /* Move an existing disc mesh to new heights without rebuilding it. */
+  function updateDisc(mesh, heights, rings, segs, o) {
+    var P = mesh.positions;
+    var topCount = 1 + rings * segs;
+    for (var v = 0; v < topCount; v++) P[v * 3 + 2] = o.base + o.relief * clamp(heights[v], 0, 1);
+    var rim = 1 + (rings - 1) * segs;
+    for (var c = 0; c < segs; c++) P[(topCount + c) * 3 + 2] = P[(rim + c) * 3 + 2];
+    return mesh;
+  }
+
   /* ------------------------------------------------------------- sphere */
 
   /*
@@ -517,6 +581,8 @@
     MIN_WALL_MM: MIN_WALL_MM,
     buildPlate: buildPlate,
     updatePlate: updatePlate,
+    buildDisc: buildDisc,
+    updateDisc: updateDisc,
     buildSphere: buildSphere,
     isoSurface: isoSurface,
     buildRoom: buildRoom,

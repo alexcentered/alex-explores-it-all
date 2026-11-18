@@ -1,6 +1,6 @@
 {
   "name": "singing-plate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Operation Singing Plate: frequency console and 3D form lab for a desktop Chladni plate rig.",
   "scripts": {

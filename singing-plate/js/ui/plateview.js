@@ -27,6 +27,7 @@
     this.ctx = canvas.getContext('2d');
     this.image = this.ctx.createImageData(RES, RES);
     this.mode = 'sand';
+    this.round = false;
     this.ink = [240, 240, 240];
     this.field = null;
     this.size = 0;
@@ -40,9 +41,22 @@
   /* Throw the sand back on evenly, as if re-sprinkling the plate. */
   PlateView.prototype.scatter = function () {
     for (var i = 0; i < GRAINS; i++) {
-      this.x[i] = Math.random();
-      this.y[i] = Math.random();
+      var x, y;
+      do {
+        x = Math.random();
+        y = Math.random();
+      } while (this.round && (x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5) > 0.25);
+      this.x[i] = x;
+      this.y[i] = y;
     }
+  };
+
+  /* A round plate keeps its sand inside a circle. Field values below zero mean "off the plate". */
+  PlateView.prototype.setRound = function (round) {
+    if (this.round === !!round) return;
+    this.round = !!round;
+    this.scatter();
+    this._fieldDirty = true;
   };
 
   PlateView.prototype.setField = function (field, size) {
@@ -73,19 +87,26 @@
     var data = this.image.data;
     var r = this.ink[0], g = this.ink[1], b = this.ink[2];
     var TWO_PI = Math.PI * 2;
+    var round = this.round;
     data.fill(0);
 
     for (var i = 0; i < GRAINS; i++) {
       var gx = x[i], gy = y[i];
       var amp = f[((gy * n) | 0) * n + ((gx * n) | 0)];
       if (amp > AMP_CAP) amp = AMP_CAP;
+      else if (amp < 0) amp = 1;          // a rim cell sampled just off the plate
       var step = STEP * amp;
       var angle = Math.random() * TWO_PI;
-      gx += Math.cos(angle) * step;
-      gy += Math.sin(angle) * step;
-      // Grains bounce off the plate edge rather than falling off it.
-      if (gx < 0) gx = -gx; else if (gx >= 1) gx = 1.999999 - gx;
-      if (gy < 0) gy = -gy; else if (gy >= 1) gy = 1.999999 - gy;
+      var nx = gx + Math.cos(angle) * step;
+      var ny = gy + Math.sin(angle) * step;
+      // Grains stay on the plate rather than falling off it.
+      if (round) {
+        if ((nx - 0.5) * (nx - 0.5) + (ny - 0.5) * (ny - 0.5) > 0.25) { nx = gx; ny = gy; }
+      } else {
+        if (nx < 0) nx = -nx; else if (nx >= 1) nx = 1.999999 - nx;
+        if (ny < 0) ny = -ny; else if (ny >= 1) ny = 1.999999 - ny;
+      }
+      gx = nx; gy = ny;
       x[i] = gx; y[i] = gy;
 
       var px = (gx * (RES - 1)) | 0;
@@ -118,7 +139,7 @@
       var v = f[i] / LINE_WIDTH;
       var o = i * 4;
       d[o] = r; d[o + 1] = g; d[o + 2] = b;
-      d[o + 3] = 255 * Math.exp(-v * v);
+      d[o + 3] = v < 0 ? 0 : 255 * Math.exp(-v * v);
     }
     fctx.putImageData(img, 0, 0);
     this.ctx.clearRect(0, 0, RES, RES);

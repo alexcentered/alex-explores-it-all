@@ -59,6 +59,7 @@
         <div><dt>Note</dt><dd><span id="noteName">A4</span> <span class="dim" id="noteCents">±0 ¢</span></dd></div>
         <div><dt>Wavelength in air</dt><dd id="wavelength">78.0 cm</dd></div>
         <div><dt>Period</dt><dd id="period">2.27 ms</dd></div>
+        <div><dt>Ripples on water</dt><dd id="ripple">2.2 mm</dd></div>
       </dl>
     </div>
 
@@ -147,8 +148,15 @@
     <details class="fold">
       <summary>Plate setup</summary>
       <div class="form-grid">
+        <div class="field span2">
+          <label class="label" for="plShape">Shape</label>
+          <select class="input" id="plShape">
+            <option value="square">Square</option>
+            <option value="circle">Round</option>
+          </select>
+        </div>
         <div class="field">
-          <label class="label" for="plSide">Side, cm</label>
+          <label class="label" for="plSide" id="plSideLabel">Side, cm</label>
           <input class="input" id="plSide" type="number" inputmode="decimal" min="5" max="100" step="0.5" value="24">
         </div>
         <div class="field">
@@ -175,7 +183,7 @@
       <div class="chips" id="modeList"></div>
     </details>
 
-    <p class="hint">Idealised model of a centre-driven square plate. Real resonances land near these predictions, not on them: treat it as a map, and trust the sand.</p>
+    <p class="hint" id="simNote">Idealised model of a centre-driven plate with free edges. Real resonances land near these predictions, not on them: treat it as a map, and trust the sand.</p>
   </section>
 
   <!-- =============================================================== OUTPUT -->
@@ -284,8 +292,20 @@
           <textarea class="input" id="pNotes" rows="3" maxlength="4000" placeholder="Volume, medium, how sharp the lines were"></textarea>
         </div>
         <div class="field">
+          <label class="label" for="pMedium">Medium on the plate</label>
+          <select class="input" id="pMedium">
+            <option value="sand">Sand</option>
+            <option value="salt">Salt</option>
+            <option value="semolina">Semolina</option>
+            <option value="water">Water</option>
+            <option value="cornflour">Cornflour mix</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
           <span class="label" id="photoLabel">Photo of the plate</span>
           <div class="photo-row">
+            <button class="btn" id="cameraBtn" type="button" hidden>Use camera</button>
             <label class="btn file-btn" id="photoBtn"><span id="photoBtnText">Add photo</span><input id="pPhoto" type="file" accept="image/*" aria-labelledby="photoLabel"></label>
             <button class="btn ghost" id="photoClear" type="button" hidden>Remove</button>
             <img class="thumb" id="pPreview" alt="Selected photo preview" hidden>
@@ -316,11 +336,29 @@
       <li><b>Mind the low end.</b> Long, loud tones under about 60 Hz can overheat the driver or bottom it out.</li>
       <li><b>Know the stop.</b> <kbd>Esc</kbd> silences the output immediately from anywhere on this page.</li>
       <li><b>Contain the mess.</b> Tray under the plate. Sand travels.</li>
+      <li><b>Liquids stay shallow and away from the electrics.</b> A few millimetres in a dish on the plate. Keep the driver, amplifier and cables dry, and expect splashes as the level rises.</li>
     </ol>
   </section>
 </main>
 
 <footer class="foot label">Operation Singing Plate · the simulator is a model, the plate is the truth</footer>
+
+<dialog class="dialog wide" id="cameraDialog" aria-labelledby="cameraTitle">
+  <div class="panel-head">
+    <h2 id="cameraTitle">Camera</h2>
+    <button class="btn ghost" id="cameraClose" type="button">Cancel</button>
+  </div>
+  <div class="camera-frame">
+    <video id="cameraVideo" autoplay playsinline muted aria-label="Live camera view"></video>
+  </div>
+  <div class="field" id="cameraPickField" hidden>
+    <label class="label" for="cameraPick">Camera</label>
+    <select class="input" id="cameraPick"></select>
+  </div>
+  <p class="notice error" id="cameraMsg" role="alert" hidden></p>
+  <button class="btn primary" id="cameraShoot" type="button">Take photo</button>
+  <p class="hint">The picture stays in this browser with the rest of the log. Nothing is uploaded.</p>
+</dialog>
 
 <dialog class="dialog" id="keysDialog" aria-labelledby="keysTitle">
   <div class="panel-head">
@@ -345,6 +383,8 @@
 <script src="js/core/safety.js"></script>
 <script src="js/core/sweep.js"></script>
 <script src="js/core/chladni.js"></script>
+<script src="js/core/disc.js"></script>
+<script src="js/core/liquid.js"></script>
 <script src="js/audio/engine.js"></script>
 <script src="js/store/presets.js"></script>
 <script src="js/ui/dial.js"></script>

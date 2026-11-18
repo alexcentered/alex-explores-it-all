@@ -9,7 +9,7 @@
   'use strict';
 
   var SP = root.SP;
-  var F = SP.freq, safety = SP.safety, chladni = SP.chladni;
+  var F = SP.freq, safety = SP.safety, chladni = SP.chladni, disc = SP.disc;
   var SETTINGS_KEY = 'singing-plate:v1';
   var SIM_SIZE = 160;
   var METER_FLOOR_DB = -48;
@@ -108,6 +108,7 @@
     el.noteCents.textContent = F.formatCents(note.cents);
     el.wavelength.textContent = F.formatLength(F.wavelength(f));
     el.period.textContent = formatPeriod(F.periodMs(f));
+    el.ripple.textContent = F.formatLength(SP.liquid.rippleWavelength(f));
     if (document.activeElement !== el.freqInput) el.freqInput.value = text;
     dial.set(F.freqToDial(f));
     el.dial.setAttribute('aria-valuenow', text);
@@ -311,10 +312,19 @@
 
   /* -------------------------------------------------------- simulator */
 
+  function isRound() { return state.plate.shape === 'circle'; }
+
   function rebuildModes() {
     plateC = chladni.plateConstant(state.plate);
-    modes = chladni.modeTable(plateC, F.F_MIN, F.F_MAX);
+    // A centre-driven round plate rings in concentric circles; a square one in the classic figures.
+    modes = isRound()
+      ? disc.modeTable(state.plate, F.F_MIN, F.F_MAX)
+      : chladni.modeTable(plateC, F.F_MIN, F.F_MAX);
     nearest = null;
+    el.plShape.value = state.plate.shape;
+    el.plSideLabel.textContent = isRound() ? 'Diameter, cm' : 'Side, cm';
+    el.plate.parentNode.classList.toggle('round', isRound());
+    plateView.setRound(isRound());
     var frag = document.createDocumentFragment();
     modes.forEach(function (m, i) {
       var chip = document.createElement('button');
@@ -362,6 +372,7 @@
 
   function readPlateInputs() {
     state.plate = chladni.sanitizePlate({
+      shape: el.plShape.value,
       sideCm: isFinite(boxValue(el.plSide)) ? boxValue(el.plSide) : state.plate.sideCm,
       thicknessMm: isFinite(boxValue(el.plThick)) ? boxValue(el.plThick) : state.plate.thicknessMm,
       material: el.plMaterial.value,
@@ -375,6 +386,7 @@
 
   function setTrim(trim) {
     state.plate = chladni.sanitizePlate({
+      shape: state.plate.shape,
       sideCm: state.plate.sideCm, thicknessMm: state.plate.thicknessMm,
       material: state.plate.material, trim: trim
     });
@@ -497,7 +509,8 @@
 
     if (simVisible) {
       if (simDirty && t - simLastCompute > 50) {
-        chladni.field(state.freq, plateC, SIM_SIZE, { out: simField });
+        if (isRound()) disc.field(state.freq, state.plate, SIM_SIZE, { out: simField });
+        else chladni.field(state.freq, plateC, SIM_SIZE, { out: simField });
         plateView.setField(simField, SIM_SIZE);
         simDirty = false;
         simLastCompute = t;
@@ -509,6 +522,8 @@
 
   /* -------------------------------------------------------------- log */
 
+  var MEDIUM_LABEL = { sand: 'Sand', salt: 'Salt', semolina: 'Semolina', water: 'Water', cornflour: 'Cornflour mix', other: 'Other' };
+  var lastMedium = 'sand';
   var editingId = null;
   var pendingPhoto = null;     // Blob chosen in the form, not yet saved
   var removePhoto = false;     // editing: operator asked to drop the photo
@@ -555,6 +570,7 @@
     pendingPhoto = null;
     removePhoto = false;
     el.logForm.reset();
+    el.pMedium.value = lastMedium;      // a session usually sticks with one medium
     setPreview(null);
     el.formTitle.textContent = 'Log the current pattern';
     el.pSave.textContent = 'Save to log';
@@ -575,6 +591,7 @@
     removePhoto = false;
     el.pName.value = rec.name;
     el.pNotes.value = rec.notes;
+    el.pMedium.value = rec.medium || 'sand';
     el.pPhoto.value = '';
     setPreview(rec.photo);
     el.formTitle.textContent = 'Edit log entry';
@@ -645,6 +662,7 @@
     if (rec.notes) body.appendChild(make('p', 'entry-notes', rec.notes));
     var when = new Date(rec.createdAt);
     body.appendChild(make('p', 'entry-meta',
+      (MEDIUM_LABEL[rec.medium] || 'Sand') + ' · ' +
       (rec.mode ? 'near mode ' + rec.mode + ' · ' : '') +
       when.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })));
 
@@ -717,6 +735,8 @@
     }
     raw.name = el.pName.value;
     raw.notes = el.pNotes.value;
+    raw.medium = el.pMedium.value;
+    if (!existing) lastMedium = raw.medium;
     el.pSave.disabled = true;
     store.save(raw).then(function (rec) {
       resetForm();
@@ -738,6 +758,91 @@
       el.pPhoto.value = '';
       logMessage(err.message + '.', 'error');
     });
+  }
+
+  /* ----------------------------------------------------------- camera */
+
+  var cameraStream = null;
+
+  function cameraSupported() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && el.cameraDialog.showModal);
+  }
+
+  function stopCamera() {
+    if (cameraStream) cameraStream.getTracks().forEach(function (t) { t.stop(); });
+    cameraStream = null;
+    el.cameraVideo.srcObject = null;
+  }
+
+  function cameraError(err) {
+    var name = err && err.name;
+    el.cameraMsg.textContent = name === 'NotAllowedError'
+      ? 'Camera access was refused. Allow it in the browser\'s site settings, or use Add photo instead.'
+      : name === 'NotFoundError' || name === 'OverconstrainedError'
+        ? 'No camera was found on this device. Use Add photo instead.'
+        : 'The camera could not be started. Use Add photo instead.';
+    el.cameraMsg.hidden = false;
+    el.cameraShoot.disabled = true;
+  }
+
+  /* Start, or switch to, a camera. With no id the rear camera is preferred: it faces the plate. */
+  function startCamera(deviceId) {
+    stopCamera();
+    el.cameraMsg.hidden = true;
+    el.cameraShoot.disabled = true;
+    var video = deviceId
+      ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1440 } }
+      : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } };
+    return navigator.mediaDevices.getUserMedia({ video: video, audio: false }).then(function (stream) {
+      if (!el.cameraDialog.open) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+      cameraStream = stream;
+      el.cameraVideo.srcObject = stream;
+      el.cameraShoot.disabled = false;
+      return listCameras(stream);
+    }).catch(cameraError);
+  }
+
+  /* Offer a choice only when there is one to make. Labels appear once access is granted. */
+  function listCameras(stream) {
+    if (!navigator.mediaDevices.enumerateDevices) return;
+    return navigator.mediaDevices.enumerateDevices().then(function (devices) {
+      var cams = devices.filter(function (d) { return d.kind === 'videoinput'; });
+      var active = stream.getVideoTracks()[0];
+      var activeId = active && active.getSettings ? active.getSettings().deviceId : '';
+      el.cameraPick.replaceChildren();
+      cams.forEach(function (cam, i) {
+        var opt = document.createElement('option');
+        opt.value = cam.deviceId;
+        opt.textContent = cam.label || 'Camera ' + (i + 1);
+        el.cameraPick.appendChild(opt);
+      });
+      if (activeId) el.cameraPick.value = activeId;
+      el.cameraPickField.hidden = cams.length < 2;
+    }).catch(function () { el.cameraPickField.hidden = true; });
+  }
+
+  function openCamera() {
+    el.cameraDialog.showModal();
+    startCamera();
+  }
+
+  function shootPhoto() {
+    var v = el.cameraVideo;
+    if (!v.videoWidth) return;
+    var canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    canvas.getContext('2d').drawImage(v, 0, 0);
+    canvas.toBlob(function (blob) {
+      if (!blob) { cameraError(); return; }
+      SP.photos.shrink(blob).then(function (small) {
+        pendingPhoto = small;
+        removePhoto = false;
+        el.pPhoto.value = '';
+        setPreview(small);
+        el.cameraDialog.close();
+      }).catch(cameraError);
+    }, 'image/jpeg', 0.92);
   }
 
   function exportLog() {
@@ -795,7 +900,7 @@
       if (engine.playing) { stopTone(true); e.preventDefault(); }
       return;
     }
-    if (el.keysDialog.open || e.metaKey || e.ctrlKey) return;
+    if (document.querySelector('dialog[open]') || e.metaKey || e.ctrlKey) return;
     var t = e.target;
 
     if (e.key === ' ' || e.code === 'Space') {
@@ -827,7 +932,7 @@
 
   /* Browsers fire a button's click on Space key-up; swallow it to avoid a double action. */
   function onKeyUp(e) {
-    if ((e.key === ' ' || e.code === 'Space') && !el.keysDialog.open && spaceIsGlobal(e.target)) e.preventDefault();
+    if ((e.key === ' ' || e.code === 'Space') && !document.querySelector('dialog[open]') && spaceIsGlobal(e.target)) e.preventDefault();
   }
 
   /* ------------------------------------------------------------- init */
@@ -847,12 +952,14 @@
 
   function init() {
     ['status', 'statusText', 'themeBtn', 'keysBtn', 'keysDialog', 'keysClose',
-      'freqBig', 'noteName', 'noteCents', 'wavelength', 'period', 'dial', 'freqInput',
+      'freqBig', 'noteName', 'noteCents', 'wavelength', 'period', 'ripple', 'dial', 'freqInput',
       'fineTrim', 'fineOut', 'scope', 'toneBtn', 'toneText', 'outState', 'volume', 'volumeOut',
       'ceiling', 'ceilingOut', 'meterFill', 'meterCeil', 'peakOut', 'lfGuard', 'guardNote',
       'swFrom', 'swTo', 'swRate', 'swGo', 'swReset', 'swFill', 'swHead', 'swTicks', 'swEta',
       'swState', 'swSpan', 'swHint', 'plate', 'simMode', 'simModeHz', 'simDelta', 'scatterBtn',
-      'jumpBtn', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
+      'jumpBtn', 'plShape', 'plSideLabel', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
+      'pMedium', 'cameraBtn', 'cameraDialog', 'cameraClose', 'cameraVideo', 'cameraPick', 'cameraPickField',
+      'cameraMsg', 'cameraShoot',
       'modeList', 'modeCount', 'sortBtn', 'exportBtn', 'importInput', 'logForm', 'formTitle',
       'capFreq', 'capMeta', 'pName', 'pNotes', 'pPhoto', 'photoBtnText', 'photoClear',
       'pPreview', 'pSave', 'pCancel', 'logMsg', 'storeNote', 'logEmpty', 'logList'
@@ -954,7 +1061,7 @@
       var chip = e.target.closest('.chip');
       if (chip) setFrequency(modes[Number(chip.dataset.index)].f);
     });
-    [el.plSide, el.plThick, el.plMaterial].forEach(function (input) {
+    [el.plShape, el.plSide, el.plThick, el.plMaterial].forEach(function (input) {
       input.addEventListener('change', readPlateInputs);
     });
     el.alignBtn.addEventListener('click', function () {
@@ -1001,6 +1108,16 @@
       setPreview(null);
     });
     el.logList.addEventListener('click', onLogClick);
+
+    if (cameraSupported()) {
+      el.cameraBtn.hidden = false;
+      el.cameraBtn.addEventListener('click', openCamera);
+      el.cameraShoot.addEventListener('click', shootPhoto);
+      el.cameraClose.addEventListener('click', function () { el.cameraDialog.close(); });
+      el.cameraPick.addEventListener('change', function () { startCamera(el.cameraPick.value); });
+      // Whatever closes the dialog, the camera light must go out.
+      el.cameraDialog.addEventListener('close', stopCamera);
+    }
     el.sortBtn.addEventListener('click', function () {
       state.sort = state.sort === 'freq' ? 'newest' : 'freq';
       renderLog();

@@ -21,12 +21,12 @@ Test with headphones at low volume before connecting the amplifier.
 | Area | What you get |
 | --- | --- |
 | Frequency | 20 Hz to 5 kHz. Logarithmic coarse dial, exact entry, ±0.1 / ±1 / ±10 Hz buttons, a spring-return fine trim, and keyboard nudges |
-| Readout | Frequency, nearest note with cents offset, wavelength in air, period |
+| Readout | Frequency, nearest note with cents offset, wavelength in air, period, and the ripple spacing to expect on water |
 | Waveform | Sine by default; triangle and square for experiments |
 | Output | Fade in and fade out on every start, stop and waveform change; volume; hard limiter with adjustable ceiling; low-frequency driver guard; live scope and peak meter |
 | Sweep | Glide between two frequencies at a set rate in Hz per second. Lock freezes the sweep while the tone keeps holding; resume carries on from wherever you nudged to |
-| Simulator | Predicted sand pattern for the current frequency, a list of predicted resonances to jump to, and one-button alignment of the model to your real plate |
-| Pattern log | Save a frequency with a name, notes and a photo. Recall, edit, delete, export and import |
+| Simulator | Predicted sand pattern for the current frequency on a square or round plate, a list of predicted resonances to jump to, and one-button alignment of the model to your real plate |
+| Pattern log | Save a frequency with a name, notes, the medium on the plate and a photo, taken with the camera or chosen from files. Recall, edit, delete, export and import |
 | Theme | Dark by default, light on request, monochrome throughout |
 
 ## Keys
@@ -80,24 +80,33 @@ That gets the family of shapes and their order right. It does not get exact freq
 
 Once you find a real resonance whose pattern matches a predicted one, open **Plate setup** and press **Align model to this frequency**. That rescales every prediction to your plate.
 
+### Round plates
+
+Set **Shape** to Round in Plate setup and the size becomes a diameter. A round plate's modes are counted in nodal diameters (straight still lines through the centre) and nodal circles (still rings). A driver at the centre can only raise modes that move at the centre, which on a round plate means rings alone, so the simulator predicts concentric circles. The mode frequencies come from solving the free-edge conditions numerically; the solver is checked against the published values for a free circular plate.
+
+### Liquids
+
+Swap the sand for a shallow dish of water and the surface breaks into standing ripples (Faraday waves) once the plate is shaking hard enough. They oscillate at half the drive frequency, and their spacing follows from gravity and surface tension, so the console shows the spacing to expect for the current frequency: measure it against your photo. This holds for water-like liquids a few millimetres deep. Thick mixes such as cornflour behave differently and are not modelled; log them with the Medium field and let the photo speak.
+
 ## The 3D lab
 
-Three shapes, each chosen either by frequency or directly by mode numbers:
+Four shapes, each chosen either by frequency or directly by mode numbers:
 
 | Shape | What it shows | How frequency picks the form |
 | --- | --- | --- |
-| Plate | The Chladni pattern lifted into relief: either the plate caught mid-swing, or the sand lines raised as ridges | The same driven-plate model as the console, using the plate set up there |
+| Plate | The Chladni pattern of a square plate lifted into relief: either the plate caught mid-swing, or the sand lines raised as ridges | The same driven-plate model as the console, using the plate set up there |
+| Disc | The same for a round plate: rings when driven at the centre, star shapes when picked by nodal diameters and circles | The round-plate model, at the console plate's size, thickness and metal |
 | Sphere | Standing waves on a ball, the shapes a vibrating droplet takes (spherical harmonics) | Rayleigh's formula for a water drop of the radius you set |
 | Room | Standing waves inside a cube, drawn as the sheets where the air stays still | Room-mode formula for a cube of the side you set |
 
 - **Viewer:** drag to orbit, scroll or pinch to zoom. The wave animates; **Freeze** stops it where it is and **Freeze at peak** stops it at its most pronounced.
 - **2D pattern:** the matching flat picture sits beside the 3D form: nodal lines on the plate, the sphere's still lines unrolled like a map, or a slice through the room.
-- **Pattern log:** any pattern saved on the console can be opened here, from the picker or from the **3D** button on a log entry.
+- **Pattern log:** any pattern saved on the console can be opened here, from the picker or from the **3D** button on a log entry. One logged on a round plate opens as a disc.
 - **Hear it:** plays the form's frequency through the same limited, faded output as the console.
 
 ### Printing
 
-A wave pattern has no thickness, so each shape is given what a printer needs: the plate gets a base slab, the sphere a flat cut underneath so it stands, and the room's node sheets a wall thickness plus an optional slab that ties them together.
+A wave pattern has no thickness, so each shape is given what a printer needs: the plate and disc get a base slab, the sphere a flat cut underneath so it stands, and the room's node sheets a wall thickness plus an optional slab that ties them together.
 
 **Check and build** makes the print file at export resolution (finer than the preview, and independent of it) and inspects it:
 
@@ -126,7 +135,9 @@ js/core/            pure logic, no browser APIs: unit tested
   freq.js             ranges, notes, wavelength, dial mapping
   safety.js           gain law, limiter curve, driver guard
   sweep.js            sweep state machine
-  chladni.js          plate model
+  chladni.js          square plate model
+  disc.js             round plate model (Bessel functions, free-edge modes)
+  liquid.js           ripple spacing on a vibrated liquid
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by both pages
@@ -150,7 +161,7 @@ Runs the unit tests for `js/core` on Node's built-in test runner. No dependencie
 
 ## Data
 
-Everything stays in your browser. The pattern log lives in IndexedDB and settings in localStorage, both scoped to wherever the page is served from, so a log made at `localhost:8080` is separate from one made by opening the file directly. Use **Export** to move a log between them or to back it up; photos travel inside the exported file.
+Everything stays in your browser, camera photos included: nothing is uploaded. The camera needs a secure page, so it works on `https` and on `localhost`; if the browser refuses, use **Add photo** instead. The pattern log lives in IndexedDB and settings in localStorage, both scoped to wherever the page is served from, so a log made at `localhost:8080` is separate from one made by opening the file directly. Use **Export** to move a log between them or to back it up; photos travel inside the exported file.
 
 ## Moving to its own repository
 
