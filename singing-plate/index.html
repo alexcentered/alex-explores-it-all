@@ -31,6 +31,7 @@
   <nav class="tabs" aria-label="Sections">
     <a href="index.html" aria-current="page">Console</a>
     <a href="lab.html">3D lab</a>
+    <a href="line.html">Line test</a>
   </nav>
   <div class="topbar-tools">
     <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
@@ -269,7 +270,7 @@
   </section>
 
   <!-- ================================================================= LIFE -->
-  <section class="panel life" aria-labelledby="lifeTitle">
+  <section class="panel life" id="life" aria-labelledby="lifeTitle">
     <div class="panel-head">
       <h2 id="lifeTitle">Life signals</h2>
       <span class="label">Who else uses these frequencies</span>
@@ -287,6 +288,9 @@
       <summary>Beyond Earth</summary>
       <p class="value">No contact with a non-human intelligence has been verified, so no frequency is known to reach one. What does exist is below, in lists kept apart on purpose: what has been measured or sent, and what has been claimed.</p>
 
+      <p class="hint">Where a frequency cannot be played, <b>Simulate</b> shifts it by whole octaves until it can. Doubling or halving a frequency gives the same note in another register, so what you hear is the true pitch in a range a speaker can reach.</p>
+      <p class="notice ok" id="simNote" role="status" hidden></p>
+
       <h3 class="label">Listened for and sent · radio, measured</h3>
       <dl class="life-beyond" id="searchList"></dl>
 
@@ -295,6 +299,7 @@
 
       <h3 class="label">Sounds and tones in contact accounts · claims</h3>
       <ul class="account-list" id="accountList"></ul>
+      <p class="hint">Sherman's exercise is recreated on the <a href="line.html">Line test</a> page, as a fair test against chance.</p>
 
       <p class="hint">Why none of the measured frequencies can be played here: sound needs air and space has none, so anything sent between stars has to be radio or light. Those radio frequencies are roughly a hundred thousand times higher than a speaker can go; they need a radio transmitter and a licence, and the band around the hydrogen line is reserved for listening, so transmitting in it is prohibited. In nearly every account above, the beings are said to communicate by thought, which is why none of them comes with a frequency.</p>
     </details>

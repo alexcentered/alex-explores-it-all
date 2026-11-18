@@ -84,11 +84,12 @@ test('life: the search list is real radio, and none of it is playable sound', ()
 });
 
 test('life: no reported being is given a frequency that the accounts do not give', () => {
-  assert.ok(life.REPORTS.length >= 5);
+  assert.ok(life.REPORTS.length >= 7);
   for (const r of life.REPORTS) {
     for (const key of ['id', 'who', 'home', 'source', 'mode', 'frequency']) assert.ok(typeof r[key] === 'string' && r[key].length > 2, `${r.id}.${key}`);
-    assert.equal(r.frequency, 'None given', `${r.id} must not invent a frequency`);
+    assert.ok(r.frequency.startsWith('None given'), `${r.id} must not invent a frequency`);
     assert.equal(r.tune, undefined);
+    assert.equal(r.sims, undefined, `${r.id} has nothing to simulate`);
   }
 });
 
@@ -99,8 +100,52 @@ test('life: accounts are worded as claims, and only the one with a published fig
   const by = (id) => life.ACCOUNTS.find((a) => a.id === id);
   assert.match(by('sherman').frequency, /No frequency/);
   assert.match(by('sherman').note, /only source/);
-  assert.match(by('ce5').note, /no session has produced verified contact/);
+  assert.match(by('ce5').note, /No session has produced verified contact/);
+  assert.match(by('ce5').note, /cannot be simulated honestly/);
+  assert.equal(by('ce5').sims, undefined);
+  assert.equal(by('sherman').sims, undefined, 'Sherman gives no pitch, so there is nothing to simulate');
+  assert.match(by('bashar').note, /not a signal to send/);
   assert.match(by('trill').note, /not a published measurement/);
   assert.match(by('schumann').note, /speaker cannot produce it/);
   assert.ok(life.EVIDENCE.claim);
+});
+
+test('life: simulations land on the console and say how far they were shifted', () => {
+  const all = [...life.BEYOND, ...life.SEARCH, ...life.ACCOUNTS].flatMap((e) => (e.sims || []).map((sim) => ({ id: e.id, sim })));
+  assert.ok(all.length >= 12);
+  for (const { id, sim } of all) {
+    assert.ok(typeof sim.label === 'string' && sim.label.length > 2, id);
+    assert.ok(Number.isInteger(sim.octaves) && sim.octaves !== 0, `${id} is shifted by whole octaves`);
+    const hz = life.simulate(sim);
+    assert.ok(hz >= 20 && hz <= 20000, `${id}: ${hz} Hz must be playable`);
+    // the real frequency itself must be out of reach, or there would be nothing to simulate
+    assert.ok(sim.real < 20 || sim.real > 20000, `${id} is genuinely out of range`);
+    // an octave shift is exact: undo it and the real frequency comes back
+    assert.ok(Math.abs(hz / Math.pow(2, sim.octaves) - sim.real) / sim.real < 1e-3, id);
+  }
+});
+
+test('life: worked simulation values', () => {
+  const sim = (group, id, i = 0) => life.simulate(life[group].find((e) => e.id === id).sims[i]);
+  assert.equal(sim('SEARCH', 'hydrogen'), 677.3);          // 1,420,405,752 / 2^21
+  assert.equal(sim('SEARCH', 'arecibo'), 1134.9);
+  assert.equal(sim('SEARCH', 'cosmiccall'), 2389);
+  assert.equal(sim('SEARCH', 'blc1'), 468.3);
+  assert.equal(sim('BEYOND', 'rat', 0), 2750);
+  assert.equal(sim('BEYOND', 'rat', 1), 6250);
+  assert.equal(sim('ACCOUNTS', 'schumann'), 125.3);        // 7.83 x 2^4
+  assert.equal(sim('ACCOUNTS', 'bashar'), 5203.1);
+  assert.equal(life.describeShift(-21), '21 octaves down');
+  assert.equal(life.describeShift(4), '4 octaves up');
+  assert.equal(life.describeShift(-1), '1 octave down');
+});
+
+test('life: one shift per group keeps the intervals between entries true', () => {
+  const shifts = new Set(life.SEARCH.flatMap((e) => e.sims.map((s) => s.octaves)));
+  assert.equal(shifts.size, 1, 'every radio entry is shifted by the same amount');
+  const ultra = new Set(life.BEYOND.flatMap((e) => e.sims.map((s) => s.octaves)));
+  assert.equal(ultra.size, 1);
+  // so Arecibo over the hydrogen line is the same ratio simulated as real
+  const h = life.SEARCH.find((e) => e.id === 'hydrogen').sims[0], a = life.SEARCH.find((e) => e.id === 'arecibo').sims[0];
+  assert.ok(Math.abs(life.simulate(a) / life.simulate(h) - a.real / h.real) < 1e-3);
 });

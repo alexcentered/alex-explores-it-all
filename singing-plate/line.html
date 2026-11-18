@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Line test</title>
+<meta name="description" content="A recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Line test</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="index.html">Console</a>
+    <a href="lab.html">3D lab</a>
+    <a href="line.html" aria-current="page">Line test</a>
+  </nav>
+  <div class="topbar-tools">
+    <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
+      <span class="lamp" aria-hidden="true"></span><span id="statusText">Standby</span>
+    </div>
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="line-grid">
+
+  <!-- =============================================================== SCOPE -->
+  <section class="panel line-scope" aria-labelledby="scopeTitle">
+    <div class="panel-head">
+      <h2 id="scopeTitle">Flatten the line</h2>
+      <span class="label" id="runState">Ready</span>
+    </div>
+
+    <div class="line-screen">
+      <canvas id="lineCanvas" width="1200" height="360" role="img" aria-label="The line. It is wavy when the two tones are apart and flat when they meet."></canvas>
+    </div>
+
+    <ol class="line-blocks" id="blocks" aria-label="The session in ten parts"></ol>
+
+    <div class="line-progress" aria-hidden="true"><div id="progressFill"></div></div>
+    <div class="field-head">
+      <span class="label" id="progressText">0 of 480 steps</span>
+      <span class="label">Time left <span id="timeLeft">02:00</span></span>
+    </div>
+
+    <dl class="facts line-live">
+      <div><dt>Steps flatter</dt><dd id="liveHits">0</dd></div>
+      <div><dt>Steps wavier</dt><dd id="liveMiss">0</dd></div>
+      <div><dt>Flatter share</dt><dd id="liveRate">--</dd></div>
+      <div><dt>Against chance</dt><dd id="liveZ">--</dd></div>
+    </dl>
+    <p class="notice ok" id="liveVerdict" role="status" hidden></p>
+  </section>
+
+  <!-- ============================================================ CONTROLS -->
+  <section class="panel line-controls" aria-labelledby="ctlTitle">
+    <div class="panel-head"><h2 id="ctlTitle">Session</h2></div>
+
+    <fieldset class="field seg-field">
+      <legend class="label">What you are doing</legend>
+      <div class="seg" id="kindSeg">
+        <label><input type="radio" name="kind" value="intent" checked><span>Trying</span></label>
+        <label><input type="radio" name="kind" value="control"><span>Control</span></label>
+      </div>
+      <p class="hint" id="kindHint">Trying: hum the tone in your mind and will the line flat.</p>
+    </fieldset>
+
+    <fieldset class="field seg-field">
+      <legend class="label">Length</legend>
+      <div class="seg" id="lengthSeg">
+        <label><input type="radio" name="length" value="240"><span>1 min</span></label>
+        <label><input type="radio" name="length" value="480" checked><span>2 min</span></label>
+        <label><input type="radio" name="length" value="1200"><span>5 min</span></label>
+      </div>
+      <p class="hint">Fixed before you start. If you abandon a session, the steps it reached still count, so quitting one that is going badly does not erase it.</p>
+    </fieldset>
+
+    <div class="field">
+      <label class="label" for="toneHz">Tone, Hz</label>
+      <input class="input" id="toneHz" type="number" inputmode="decimal" min="60" max="1000" step="1" value="110">
+      <p class="hint">Sherman never says what pitch his tone was. This is a comfortable low hum.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="lineVolume">Volume</label>
+        <output class="label" id="lineVolumeOut" for="lineVolume">25%</output>
+      </div>
+      <input class="range" id="lineVolume" type="range" min="0" max="100" step="1" value="25">
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="soundOn" checked>
+      <span class="check-box" aria-hidden="true"></span>
+      <span>Play the tones <span class="dim">(headphones help)</span></span>
+    </label>
+
+    <div class="btn-row">
+      <button class="btn primary grow" id="startBtn" type="button">Start session</button>
+      <button class="btn" id="abandonBtn" type="button" disabled>Abandon</button>
+    </div>
+    <p class="hint"><kbd>Esc</kbd> silences the tones and ends the session early. Its steps so far still count.</p>
+  </section>
+
+  <!-- ================================================================= LOG -->
+  <section class="panel line-log" aria-labelledby="logTitle">
+    <div class="panel-head">
+      <h2 id="logTitle">Your record</h2>
+      <button class="btn ghost" id="clearBtn" type="button">Clear record</button>
+    </div>
+    <div class="table-wrap">
+      <table class="line-table">
+        <thead>
+          <tr><th scope="col"></th><th scope="col">Sessions</th><th scope="col">Steps</th><th scope="col">Flatter share</th><th scope="col">Against chance</th><th scope="col">Luck alone does this</th></tr>
+        </thead>
+        <tbody>
+          <tr id="rowIntent"><th scope="row">Trying</th><td>0</td><td>0</td><td>--</td><td>--</td><td>--</td></tr>
+          <tr id="rowControl"><th scope="row">Control</th><td>0</td><td>0</td><td>--</td><td>--</td><td>--</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="notice ok" id="recordVerdict" role="status"></p>
+    <p class="hint">To make the record mean something: decide how many sessions you will run before you begin, run that many, and run as many control sessions with your attention elsewhere. Your trying sessions only say something if they differ from your control sessions.</p>
+  </section>
+
+  <!-- =============================================================== BRIEF -->
+  <section class="panel line-brief" aria-labelledby="briefTitle">
+    <div class="panel-head"><h2 id="briefTitle">What this is</h2></div>
+    <div class="prose">
+      <h3 class="label">The exercise</h3>
+      <p>In <i>Above Black</i>, Dan Sherman describes sitting at a console with headphones on, facing a screen of boxes with oscilloscope-style lines in them. A tone played in the headphones. He was told to hum the tone in his mind, and says that after several days he could make a wavy line go flat by thought. This page recreates that: a tone, a line, ten boxes.</p>
+
+      <h3 class="label">What moves the line here</h3>
+      <p>Chance. A computer has no way to sense a thought, so a few times a second this page draws a random bit: one way and the line gets a step flatter, the other way a step wavier. Each is a fair coin. The page then counts. If willing the line flat did anything, the count of flatter steps would sit above half by more than luck allows, and the record below would show it.</p>
+      <p>You hear the same thing you see. Two tones play a hair apart, which makes the sound throb. As the line flattens the tones move together and the throb slows; when the line is flat they are one steady tone.</p>
+
+      <h3 class="label">What to expect</h3>
+      <p>Most sessions will land within chance. About one in twenty will look unusual by luck alone, in either direction, which is why a single good session proves nothing. Laboratories ran this kind of test for decades, most famously at Princeton from 1979 to 2007, and reported a tiny effect that independent groups, and later the same lab, could not reproduce. This page will not tell you what to believe. It will tell you what your own numbers are.</p>
+
+      <h3 class="label">Could a computer do the real thing?</h3>
+      <p>Not this one, not by itself. To make a line respond to you and not to chance, the computer needs a sensor. An EEG headband reads the brain's electrical rhythms through the scalp, and with one a line that settles as you settle is ordinary technology: it is called neurofeedback and it is sold for meditation. That would be your own brain activity moving the line, though, which is a different thing from thought reaching a machine unaided, or reaching anyone else. Nothing published shows that happening, and Sherman's account is the only source for his.</p>
+      <p>The random bits come from this device's operating system. They are unpredictable in practice but are not drawn from a physical noise source, as laboratory tests use.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · the line is moved by chance, and the count is yours</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/chance.js"></script>
+<script src="js/audio/duo.js"></script>
+<script src="js/ui/line.js"></script>
+</body>
+</html>

@@ -90,12 +90,42 @@
       note: 'Each dolphin has a whistle of its own that works much like a name, typically sweeping between 7 and 15 kHz. Others call it back to them.' }
   ];
 
+  /*
+   * Simulations.
+   *
+   * Some of these frequencies cannot be played: too high for a speaker, too
+   * low, or not sound at all. Each can still be heard in the one honest way
+   * there is, by shifting it a whole number of octaves. Doubling or halving
+   * a frequency gives the same note in a different register, so the pitch
+   * relationships survive even though the real thing stays out of reach.
+   *
+   *   sims: [{ label, real, octaves }]   real in hertz; octaves < 0 is down
+   *
+   * Everything in one group is shifted by the same number of octaves, so the
+   * intervals between entries in that group are the true ones.
+   */
+  var RADIO_SHIFT = -21;      // 1,420 MHz lands near 677 Hz
+  var ULTRASOUND_SHIFT = -3;  // 22 kHz lands at 2,750 Hz
+
+  /* The frequency actually played for a simulation, on the console's 0.1 Hz grid. */
+  function simulate(sim) {
+    return Math.round(sim.real * Math.pow(2, sim.octaves) * 10) / 10;
+  }
+
+  function describeShift(octaves) {
+    var n = Math.abs(octaves);
+    return n + (n === 1 ? ' octave ' : ' octaves ') + (octaves < 0 ? 'down' : 'up');
+  }
+
   /* Signals the console cannot reach: above the range of ordinary sound hardware. */
   var BEYOND = [
     { id: 'rat', who: 'Rat', band: '22 kHz and 50 kHz', evidence: 'documented',
-      note: 'Long 22 kHz calls signal alarm or distress. Short 50 kHz chirps come with play, and with being tickled.' },
+      note: 'Long 22 kHz calls signal alarm or distress. Short 50 kHz chirps come with play, and with being tickled.',
+      sims: [{ label: 'Alarm call', real: 22000, octaves: ULTRASOUND_SHIFT },
+             { label: 'Play chirp', real: 50000, octaves: ULTRASOUND_SHIFT }] },
     { id: 'bat', who: 'Bats', band: 'mostly 20 to 100 kHz', evidence: 'documented',
-      note: 'Calls for finding the way and finding prey by echo, far above human hearing.' }
+      note: 'Calls for finding the way and finding prey by echo, far above human hearing.',
+      sims: [{ label: 'A typical 45 kHz call', real: 45000, octaves: ULTRASOUND_SHIFT }] }
   ];
 
   /* ---------------------------------------------------------------------
@@ -114,54 +144,76 @@
 
   var SEARCH = [
     { id: 'hydrogen', what: 'The hydrogen line', band: '1,420.406 MHz', when: 'listened on since 1960',
-      note: 'Hydrogen, the commonest element in the universe, emits at this frequency, so any radio astronomer anywhere would know it. Most searches have listened here.' },
+      note: 'Hydrogen, the commonest element in the universe, emits at this frequency, so any radio astronomer anywhere would know it. Most searches have listened here.',
+      sims: [{ label: 'The hydrogen line', real: 1420405752, octaves: RADIO_SHIFT }] },
     { id: 'waterhole', what: 'The water hole', band: '1,420 to 1,720 MHz', when: 'named 1971',
-      note: 'The quiet stretch of radio between the hydrogen line and the hydroxyl lines. Hydrogen plus hydroxyl makes water, hence the name for where species might meet.' },
+      note: 'The quiet stretch of radio between the hydrogen line and the hydroxyl lines. Hydrogen plus hydroxyl makes water, hence the name for where species might meet.',
+      sims: [{ label: 'Its upper edge', real: 1720000000, octaves: RADIO_SHIFT }] },
     { id: 'wow', what: 'The Wow! signal', band: '1,420.456 MHz', when: '15 August 1977',
-      note: 'A strong, narrow signal picked up for 72 seconds by the Big Ear telescope in Ohio. It has never been heard again and has never been explained.' },
+      note: 'A strong, narrow signal picked up for 72 seconds by the Big Ear telescope in Ohio. It has never been heard again and has never been explained. Shifted down it sits a fiftieth of a hertz above the hydrogen line: the two cannot be told apart by ear.',
+      sims: [{ label: 'The Wow! signal', real: 1420455600, octaves: RADIO_SHIFT }] },
     { id: 'blc1', what: 'BLC1', band: '982.002 MHz', when: 'April to May 2019',
-      note: 'A signal that appeared only when the Parkes telescope pointed at Proxima Centauri. Later analysis found it was almost certainly interference from Earth.' },
+      note: 'A signal that appeared only when the Parkes telescope pointed at Proxima Centauri. Later analysis found it was almost certainly interference from Earth.',
+      sims: [{ label: 'BLC1', real: 982002000, octaves: RADIO_SHIFT }] },
     { id: 'listen', what: 'Breakthrough Listen', band: '1 to 11 GHz', when: 'since 2016',
-      note: 'The largest search so far, scanning billions of narrow radio channels from nearby stars. Nothing confirmed.' },
+      note: 'The largest search so far, scanning billions of narrow radio channels from nearby stars. Nothing confirmed.',
+      sims: [{ label: 'Bottom of the band', real: 1000000000, octaves: RADIO_SHIFT },
+             { label: 'Top of the band', real: 11000000000, octaves: RADIO_SHIFT }] },
     { id: 'arecibo', what: 'The Arecibo message', band: '2,380 MHz', when: 'sent 16 November 1974',
-      note: 'The first deliberate message: 1,679 bits beamed at the star cluster M13. It will take about 25,000 years to arrive.' },
+      note: 'The first deliberate message: 1,679 bits beamed at the star cluster M13. It will take about 25,000 years to arrive.',
+      sims: [{ label: 'The Arecibo carrier', real: 2380000000, octaves: RADIO_SHIFT }] },
     { id: 'cosmiccall', what: 'Cosmic Call', band: '5.01 GHz', when: 'sent 1999 and 2003',
-      note: 'Messages beamed from Yevpatoria, Ukraine, at nine nearby stars. The earliest could arrive in the 2030s.' }
-  ];
-
-  /* Beings described in contact accounts. `frequency` is what the accounts give, if anything. */
-  var REPORTS = [
-    { id: 'greys', who: 'Greys', home: 'Said to be from Zeta Reticuli, 39 light-years away',
-      source: 'The Betty and Barney Hill abduction account of 1961; the commonest figure in reports ever since.',
-      mode: 'Telepathy', frequency: 'None given' },
-    { id: 'nordics', who: 'Nordics and Pleiadians', home: 'Said to be from the Pleiades, about 440 light-years away',
-      source: 'The contactee movement: George Adamski in the 1950s, Billy Meier from 1975.',
-      mode: 'Telepathy and speech', frequency: 'None given' },
-    { id: 'reptilians', who: 'Reptilians', home: 'Various',
-      source: 'A conspiracy theory popularised in the 1990s, more than a body of first-hand reports.',
-      mode: 'Not described', frequency: 'None given' },
-    { id: 'arcturians', who: 'Arcturians', home: 'Said to be from Arcturus, 37 light-years away',
-      source: 'New Age and channelled writing.',
-      mode: 'Telepathy and channelling', frequency: 'None given' },
-    { id: 'insectoids', who: 'Insectoids, or Mantis beings', home: 'Not stated',
-      source: 'Abduction accounts, mostly since the 1990s.',
-      mode: 'Telepathy', frequency: 'None given' }
+      note: 'Messages beamed from Yevpatoria, Ukraine, at nine nearby stars. The earliest could arrive in the 2030s.',
+      sims: [{ label: 'The Cosmic Call carrier', real: 5010000000, octaves: RADIO_SHIFT }] }
   ];
 
   /*
-   * Sounds and tones that turn up in contact accounts. Only one comes with a
-   * number that a speaker can play; `tune` is set for that one alone. `tag`
-   * replaces the default "Unverified claim" label where that would mislead.
+   * Beings described in contact accounts. `frequency` is what the accounts
+   * give as a way of signalling them, which in every case is nothing.
+   */
+  var REPORTS = [
+    { id: 'greys', who: 'Greys', home: 'Said to be from Zeta Reticuli, 39 light-years away',
+      source: 'The Betty and Barney Hill abduction account of 1961; the commonest figure in reports ever since.',
+      mode: 'Thought transference. Betty Hill also described the leader speaking English.', frequency: 'None given' },
+    { id: 'nordics', who: 'Nordics and Pleiadians', home: 'Said to be from the Pleiades, about 440 light-years away',
+      source: 'The contactee movement: George Adamski in the 1950s, then Billy Meier from 1975, whose photographs are widely regarded as hoaxes.',
+      mode: 'Face-to-face speech, and thought', frequency: 'None given' },
+    { id: 'tallwhites', who: 'Tall Whites', home: 'Said to be from a star about 100 light-years away',
+      source: 'Charles Hall\'s Millennial Hospitality books, about his time as an Air Force weather observer on the Nellis ranges in Nevada, 1965 to 1967.',
+      mode: 'Speech and devices. One retelling mentions high-pitched sounds, with no pitch stated.', frequency: 'None given' },
+    { id: 'essassani', who: 'Essassani', home: 'Said to be a world called Essassani',
+      source: 'Channelled by Darryl Anka since 1983, speaking as a being he calls Bashar.',
+      mode: 'Channelling: speaking through a human', frequency: 'None given as a signal. See Bashar, below.' },
+    { id: 'reptilians', who: 'Reptilians', home: 'Various',
+      source: 'A conspiracy theory popularised by David Icke in 1999, more than a body of first-hand reports.',
+      mode: 'Not described', frequency: 'None given' },
+    { id: 'arcturians', who: 'Arcturians', home: 'Said to be from Arcturus, 37 light-years away',
+      source: 'New Age and channelled writing.',
+      mode: 'Thought and channelling', frequency: 'None given' },
+    { id: 'insectoids', who: 'Insectoids, or Mantis beings', home: 'Not stated',
+      source: 'Abduction accounts, mostly since the 1990s.',
+      mode: 'Thought', frequency: 'None given' }
+  ];
+
+  /*
+   * Sounds, tones and numbers that turn up in contact accounts.
+   *   tune   a figure that is itself a playable sound
+   *   sims   a figure that has to be shifted by octaves to be heard
+   *   tag    replaces the default "Unverified claim" label where that would mislead
    */
   var ACCOUNTS = [
     { id: 'sherman', what: 'Dan Sherman and "intuitive communication"', frequency: 'No frequency: not sound or radio',
-      note: 'Sherman, a former US Air Force sergeant, wrote in Above Black (1997) that he was trained under a programme he calls Project Preserve Destiny to exchange messages with Greys by thought alone. He describes exercises with tones during training, but the communication itself as mental, meant for a time when all electromagnetic links would be down. He is the only source for the programme; nothing independent confirms it.' },
-    { id: 'ce5', what: 'CE-5 contact sessions', frequency: 'Tones are played; no agreed frequency',
-      note: 'Groups following Steven Greer\'s protocol combine meditation, lights and recorded tones to invite contact. No reliable source gives the tones a specific frequency, and no session has produced verified contact.' },
+      note: 'Sherman, a former US Air Force sergeant, wrote in Above Black (1997) that he was trained under a programme he calls Project Preserve Destiny to exchange messages with Greys by thought alone. He describes sitting at a console with headphones, watching boxes of oscilloscope-style lines, and being told to hum a tone in his mind until a wavy line went flat, which he says took days. The tone\'s pitch is never stated, and the communication itself he describes as mental, meant for a time when all electromagnetic links would be down. He is the only source for the programme; nothing independent confirms it. The Line test page recreates the exercise.' },
+    { id: 'ce5', what: 'CE-5 contact sessions', frequency: 'Tones are played; no pitch published',
+      note: 'Groups following Steven Greer\'s protocol combine meditation, lights and recorded tones to invite contact. His organisation says the tones were recorded near sightings; one listener describes them as bursts in threes, each set an octave lower than the last. No source gives their pitch, so they cannot be simulated honestly here: the recordings themselves are distributed with Greer\'s app. No session has produced verified contact.' },
     { id: 'trill', what: 'The crop circle trill', frequency: '5.0 to 5.2 kHz, as reported', lo: 5000, hi: 5200, tune: 5100,
       note: 'Witnesses and one recording describe a high trilling sound near crop circles, put at 5.0 to 5.2 kHz. The figure comes from popular accounts, not a published measurement, and the sound has ordinary candidate sources, such as birds and insects that sing in that band.' },
+    { id: 'bashar', what: 'Bashar\'s 333,000 cycles per second', frequency: '333 kHz, in channelled material',
+      note: 'Material channelled by Darryl Anka names 333,000 cycles per second as the threshold between physical and non-physical being, and puts people somewhere below it. It is described as a state of being, not a signal to send, and nothing measurable corresponds to it.',
+      sims: [{ label: 'The 333,000 figure', real: 333000, octaves: -6 }] },
     { id: 'schumann', what: 'The Schumann resonance', frequency: '7.83 Hz, but it is not a sound', tag: 'Real, but not a signal',
-      note: 'Often called Earth\'s frequency and linked to contact in popular writing. It is real, but it is a radio-wave resonance driven by lightning in the gap between the ground and the upper atmosphere. Nothing ties it to any signal, and a speaker cannot produce it.' }
+      note: 'Often called Earth\'s frequency and linked to contact in popular writing. It is real, but it is a radio-wave resonance driven by lightning in the gap between the ground and the upper atmosphere. Nothing ties it to any signal, and a speaker cannot produce it.',
+      sims: [{ label: 'The 7.83 Hz figure', real: 7.83, octaves: 4 }] }
   ];
 
   /* Every signal whose band contains this frequency. */
@@ -189,6 +241,8 @@
     SEARCH: SEARCH,
     REPORTS: REPORTS,
     ACCOUNTS: ACCOUNTS,
+    simulate: simulate,
+    describeShift: describeShift,
     activeAt: activeAt,
     playable: playable,
     formatBand: formatBand

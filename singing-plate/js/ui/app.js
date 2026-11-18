@@ -199,16 +199,49 @@
       var dt = make('dt', '', b.who + ' ');
       dt.appendChild(make('span', '', '· ' + b.band));
       wrap.appendChild(dt);
-      wrap.appendChild(make('dd', '', b.note));
+      var dd = make('dd', '', b.note);
+      appendSims(dd, b);
+      wrap.appendChild(dd);
       beyond.appendChild(wrap);
     });
     el.lifeBeyond.replaceChildren(beyond);
     buildBeyondEarth();
 
+    // One handler for every Simulate button on the panel.
+    el.life.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-sim]');
+      if (!btn) return;
+      simActive = { hz: Number(btn.dataset.sim), text: btn.dataset.simText };
+      setFrequency(simActive.hz);
+    });
+
     el.lifeList.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-tune]');
       if (btn) setFrequency(Number(btn.dataset.tune));
     });
+  }
+
+  var simActive = null;     // the simulation now playing, if the frequency still matches it
+
+  /* Add a Simulate button for each octave-shifted version an entry offers. */
+  function appendSims(parent, entry) {
+    if (!entry.sims || !entry.sims.length) return;
+    var life = SP.life;
+    var row = make('div', 'sim-row');
+    entry.sims.forEach(function (sim) {
+      var hz = life.simulate(sim);
+      var shift = life.describeShift(sim.octaves);
+      var btn = make('button', 'btn sim');
+      btn.type = 'button';
+      btn.appendChild(make('span', '', 'Simulate at ' + hz.toLocaleString('en-US') + ' Hz'));
+      btn.appendChild(make('small', '', sim.label + ' · ' + shift));
+      btn.dataset.sim = hz;
+      btn.dataset.simText = sim.label + ', shifted ' + shift + ' to ' + hz.toLocaleString('en-US') +
+        ' Hz. Same note, different register: the real frequency cannot be played by a speaker.';
+      btn.setAttribute('aria-label', 'Simulate ' + sim.label + ' at ' + hz + ' hertz, ' + shift);
+      row.appendChild(btn);
+    });
+    parent.appendChild(row);
   }
 
   /*
@@ -225,7 +258,9 @@
       dt.appendChild(make('span', '', '· ' + e.band));
       dt.appendChild(make('small', '', e.when));
       wrap.appendChild(dt);
-      wrap.appendChild(make('dd', '', e.note));
+      var dd = make('dd', '', e.note);
+      appendSims(dd, e);
+      wrap.appendChild(dd);
       search.appendChild(wrap);
     });
     el.searchList.replaceChildren(search);
@@ -265,6 +300,7 @@
         li.appendChild(make('span'));
       }
       li.appendChild(make('p', 'account-note', a.note));
+      appendSims(li, a);
       accounts.appendChild(li);
     });
     el.accountList.replaceChildren(accounts);
@@ -277,6 +313,10 @@
   /* Called on every frequency change, sweeps included, so it does as little as it can. */
   function renderLife() {
     if (!el.lifeList) return;
+    // The simulation note stays only while the console is still on that frequency.
+    if (simActive && simActive.hz !== state.freq) simActive = null;
+    el.simNote.hidden = !simActive;
+    if (simActive) el.simNote.textContent = 'Simulation: ' + simActive.text;
     el.lifeList.style.setProperty('--cursor', (F.freqToDial(state.freq) * 100).toFixed(2) + '%');
     var active = SP.life.activeAt(state.freq);
     var key = active.map(function (s) { return s.id; }).join(',');
@@ -1112,7 +1152,7 @@
       'swFrom', 'swTo', 'swRate', 'swGo', 'swReset', 'swFill', 'swHead', 'swTicks', 'swEta',
       'swState', 'swSpan', 'swHint', 'plate', 'simMode', 'simModeHz', 'simDelta', 'scatterBtn',
       'jumpBtn', 'plShape', 'plSideLabel', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
-      'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond', 'searchList', 'reportList', 'accountList',
+      'life', 'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond', 'searchList', 'reportList', 'accountList', 'simNote',
       'pMedium', 'cameraBtn', 'cameraDialog', 'cameraClose', 'cameraVideo', 'cameraPick', 'cameraPickField',
       'cameraMsg', 'cameraShoot',
       'modeList', 'modeCount', 'sortBtn', 'exportBtn', 'importInput', 'logForm', 'formTitle',

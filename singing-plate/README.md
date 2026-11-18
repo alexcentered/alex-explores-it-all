@@ -1,9 +1,10 @@
 # Singing Plate
 
-Two tools for a desktop Chladni plate rig, in one app:
+Three tools in one app, built around a desktop Chladni plate rig:
 
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
+- **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
 
@@ -137,25 +138,49 @@ No contact with a non-human intelligence has been verified, so no frequency is k
 | The Arecibo message | 2,380 MHz | sent 16 November 1974 | In transit for about 25,000 years |
 | Cosmic Call | 5.01 GHz | sent 1999 and 2003 | In transit; earliest arrival in the 2030s |
 
-**Reported beings.** Greys, Nordics and Pleiadians, Reptilians, Arcturians, and Insectoids or Mantis beings, each with where the account comes from and how the beings are said to communicate. Every one is labelled an unverified claim. None comes with a frequency, because the accounts do not give one: the beings are nearly always said to communicate by thought.
+**Reported beings.** Greys, Nordics and Pleiadians, Tall Whites, Essassani, Reptilians, Arcturians, and Insectoids or Mantis beings, each with where the account comes from and how the beings are said to communicate. Every one is labelled an unverified claim. None comes with a frequency, because the accounts do not give one: the beings are nearly always said to communicate by thought.
 
 **Sounds and tones in contact accounts.**
 
-- **Dan Sherman.** In *Above Black* (1997) Sherman, a former US Air Force sergeant, says he was trained under a programme he calls Project Preserve Destiny to exchange messages with Greys by thought alone. Published summaries describe training exercises with tones, but the communication itself as mental, intended for a time when all electromagnetic links would be down. No frequency is given, and by his own description none would apply. He is the only source for the programme.
-- **CE-5 sessions.** Groups following Steven Greer's protocol play recorded tones alongside meditation and lights. No reliable source gives the tones a frequency, and no session has produced verified contact.
+- **Dan Sherman.** In *Above Black* (1997) Sherman, a former US Air Force sergeant, says he was trained under a programme he calls Project Preserve Destiny to exchange messages with Greys by thought alone. Accounts of the training describe a console with headphones and boxes of oscilloscope-style lines, and an instruction to hum a tone mentally until a wavy line went flat. The tone's pitch is never stated, and the communication itself is described as mental, intended for a time when all electromagnetic links would be down. He is the only source for the programme. The Line test page recreates the exercise.
+- **CE-5 sessions.** Groups following Steven Greer's protocol play recorded tones alongside meditation and lights. His organisation says they were recorded near sightings; one listener describes bursts in threes, each set an octave lower. No source gives their pitch, so they are not simulated here; the recordings are distributed with Greer's app. No session has produced verified contact.
+- **Bashar.** Material channelled by Darryl Anka names 333,000 cycles per second as a threshold between physical and non-physical being. It is described as a state, not a signal, and nothing measurable corresponds to it.
 - **The crop circle trill.** A trilling sound reported near crop circles, put at 5.0 to 5.2 kHz in popular accounts. This is the only entry with a figure a speaker can play, so it has a Tune button. It is not a published measurement, and birds and insects sing in the same band.
 - **The Schumann resonance.** 7.83 Hz, real, but a radio-wave resonance driven by lightning, not a sound and not a signal.
 
 Why the measured frequencies cannot be played: sound needs air and space has none, so anything sent between stars is radio or light. Those frequencies are roughly a hundred thousand times above a speaker's reach, need a transmitter and a licence, and the band around the hydrogen line is reserved for listening.
 
-One gap in the research: Sherman's own interview transcript could not be read when this was written, so the summary of his account rests on his publisher's description, reviews and later coverage.
+### Simulations
+
+Anything with a number that a speaker cannot reach has a **Simulate** button, which shifts it by whole octaves until it can be played. Doubling or halving a frequency gives the same note in another register, so the pitch is true even though the real thing stays out of reach. Every entry in a group is shifted by the same amount, so the intervals between them are the real ones.
+
+| What | Real frequency | Shift | Plays at |
+| --- | --- | --- | --- |
+| The hydrogen line | 1,420.406 MHz | 21 octaves down | 677.3 Hz |
+| The Wow! signal | 1,420.456 MHz | 21 octaves down | 677.3 Hz |
+| BLC1 | 982.002 MHz | 21 octaves down | 468.3 Hz |
+| The Arecibo message | 2,380 MHz | 21 octaves down | 1,134.9 Hz |
+| Cosmic Call | 5.01 GHz | 21 octaves down | 2,389 Hz |
+| Rat alarm call, play chirp | 22 kHz, 50 kHz | 3 octaves down | 2,750 Hz, 6,250 Hz |
+| A typical bat call | 45 kHz | 3 octaves down | 5,625 Hz |
+| Bashar's figure | 333 kHz | 6 octaves down | 5,203.1 Hz |
+| The Schumann resonance | 7.83 Hz | 4 octaves up | 125.3 Hz |
+
+The Wow! signal and the hydrogen line come out the same because they are only 50 kHz apart, which is a fiftieth of a hertz once shifted. A simulation carries pitch only: a steady tone has none of the timing or structure of the original. Entries with no published pitch (Sherman's tone, the CE-5 tones) have no Simulate button, because there is nothing to shift.
+
+One gap in the research: Sherman's book and interview transcript could not be read directly when this was written, so the summary of his account rests on his publisher's description, reviews, interview summaries and later coverage. Those agree on the outline but differ in detail, such as how many boxes were on the screen.
 
 Sources for Beyond Earth:
 
 - Search and messages: [SETI League on the water hole](https://setileague.org/general/waterhol.htm), [SETI Institute observations](https://seti.org/seti-institute/project/details/seti-observations), [the Wow! signal](https://en.wikipedia.org/wiki/Wow!_signal), [Astronomy magazine on BLC1](https://www.astronomy.com/?p=117439), [Breakthrough Listen receiver bands](https://arxiv.org/pdf/2002.06162), [the Arecibo message of November 1974](https://ui.adsabs.harvard.edu/abs/10.1016/0019-1035(75)90116-5/abstract), [Cosmic Call](https://en.wikipedia.org/wiki/Cosmic_Call)
-- Dan Sherman: [the book's own site](https://aboveblack.com/), [publisher's listing](https://store.bookbaby.com/book/above-black1), [review](https://www.theseekerbooks.com/articles/aboveblack.htm), [later coverage](https://newspaceeconomy.ca/2025/10/30/telepathic-soldiers-and-alien-codes-inside-the-nsas-alleged-project-preserve-destiny)
+- Dan Sherman: [the book's own site](https://aboveblack.com/), [publisher's listing](https://store.bookbaby.com/book/above-black1), [review](https://www.theseekerbooks.com/articles/aboveblack.htm), [reader reviews](https://www.goodreads.com/book/show/18953914-above-black---project-preserve-destiny---an-insider-s-account-of-alien-c), [interview summary](https://pod.wave.co/podcast/american-alchemy/the-nsa-hired-me-to-speak-to-aliens-sargeant-dan-sherman), [a sceptical overview](https://uapwoo.com/project-preserve-destiny.php), [later coverage](https://newspaceeconomy.ca/2025/10/30/telepathic-soldiers-and-alien-codes-inside-the-nsas-alleged-project-preserve-destiny)
+- Tall Whites: [HowStuffWorks overview](https://science.howstuffworks.com/space/aliens-ufos/tall-whites.htm)
+- Billy Meier: [Wikipedia](https://en.wikipedia.org/wiki/Billy_Meier), [The Skeptic's Dictionary](https://www.skepdic.com/pleiades.html)
+- Reptilians: [Reptilian conspiracy theory](https://en.wikipedia.org/wiki/Reptilian_conspiracy_theory)
+- Betty and Barney Hill: [Discovery UK](https://www.discoveryuk.com/mysteries/star-struck-and-spooked-the-betty-and-barney-hill-abduction/)
+- Bashar: [Quote Investigator on the channelled material](https://quoteinvestigator.com/?p=3808), [a transcript of the frequency claims](https://www.scribd.com/document/621747574/Bashar-11-11-666) (user-uploaded, unverified)
 - Reported beings: [list of alleged extraterrestrial beings](https://en.wikipedia.com/wiki/List_of_alleged_extraterrestrial_beings), [Grey alien](https://www.Wikipedia.com/wiki/Grey_alien), [Sky at Night on Zeta Reticuli](https://www.skyatnightmagazine.com/space-science/zeta-reticuli-binary-star-sytem)
-- CE-5: [overview of the protocol](https://hangar1publishing.com/blogs/ufos-uaps-and-aliens/fifth-kind-contact) (a secondary source; no primary source for the tones was found)
+- CE-5: [CSETI working group manual](https://drstevengreer.com/wp-content/uploads/2012/12/WorkingGroupManual.pdf), [a listener's analysis of the tones](https://jdeepassion.substack.com/p/singing-in-the-wheat-part-1), [overview of the protocol](https://hangar1publishing.com/blogs/ufos-uaps-and-aliens/fifth-kind-contact)
 - Crop circle trill: a NEXUS magazine article, "Sound and crop circles" (a popular magazine, not a measurement)
 
 Sources for the bands:
@@ -177,6 +202,25 @@ Sources for the bands:
 - Dolphin: [DOSITS on signature whistles](https://dosits.org/animals/use-of-sound/marine-mammal-communication/individual-specific-vocalizations), [SeaWorld on bottlenose dolphin communication](https://seaworld.org/animals/all-about/bottlenose-dolphin/communication/)
 - Rat: [Panksepp, laughing rats](https://www.museumofplay.org/app/uploads/2022/01/2-3-article-laughing-rats-panksepp.pdf)
 - Bats: the commonly quoted range, not checked against a source when this table was written
+
+## The line test
+
+Dan Sherman's account of his training describes a tone in headphones, boxes of oscilloscope-style lines on a screen, and an instruction to hum the tone mentally until a wavy line went flat. `line.html` recreates that: a tone, a line, ten boxes.
+
+A computer has no way to sense a thought, so the line here is moved by chance, and the page counts:
+
+- Four times a second it draws one random bit. One way the line gets a step flatter, the other way a step wavier. Each is a fair coin.
+- You hear it as well as see it: two tones play a hair apart and throb. As the line flattens they move together and the throb slows, ending in one steady tone.
+- A session has a fixed length, chosen before it starts. At the end the page reports how many steps went flatter and how far that is from chance, in standard deviations.
+- **Trying** and **Control** sessions are recorded separately, and the record compares them.
+- An abandoned session still counts, with the steps it had reached. Throwing it away would let someone quit every session that was going badly and keep the good ones. A unit test simulates exactly that cheat and confirms the record stays at chance.
+- The bar is high on purpose: about one result in twenty looks unusual by luck alone.
+
+To make a record mean something, decide the number of sessions before you begin, run that many, and run as many controls.
+
+Whether a computer could do the real thing: not without a sensor. With an EEG headband, a line that settles as you settle is ordinary technology (neurofeedback). That would be your own brain activity moving the line, which is a different thing from thought reaching a machine unaided. This page does not connect to one.
+
+Background: [the Princeton PEAR lab](https://en.wikipedia.org/wiki/Princeton_Engineering_Anomalies_Research_Lab) ran tests of this kind from 1979 to 2007 and reported a very small effect that independent groups, and later the lab itself, could not reproduce.
 
 ## The 3D lab
 
@@ -218,7 +262,8 @@ The forms are mathematical models of standing waves, not recordings. They show t
 ```
 index.html          the console
 lab.html            the 3D lab
-css/styles.css      theme and layout for both
+line.html           the line test
+css/styles.css      theme and layout for all three
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
 vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
@@ -228,12 +273,14 @@ js/core/            pure logic, no browser APIs: unit tested
   chladni.js          square plate model
   disc.js             round plate model (Bessel functions, free-edge modes)
   liquid.js           ripple spacing on a vibrated liquid
-  life.js             bands other species signal in
+  life.js             bands other species signal in, Beyond Earth, simulations
+  chance.js           the statistics behind the line test
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
-js/audio/engine.js  Web Audio signal chain, shared by both pages
+js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
+js/audio/duo.js     two tones a hair apart, for the line test
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
-js/ui/              app.js wires the console, lab.js wires the lab;
+js/ui/              app.js wires the console, lab.js the lab, line.js the line test;
                     dial, plate view and 3D viewer are the parts they use
 tests/              unit tests for js/core
 tools/              entry file for rebuilding the Three.js bundle
