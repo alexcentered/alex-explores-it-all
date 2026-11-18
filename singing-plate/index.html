@@ -268,6 +268,25 @@
     <p class="hint" id="swHint">Glides slowly so resonances have time to show. Press <kbd>S</kbd> the moment a pattern locks in: the sweep freezes and the tone holds.</p>
   </section>
 
+  <!-- ================================================================= LIFE -->
+  <section class="panel life" aria-labelledby="lifeTitle">
+    <div class="panel-head">
+      <h2 id="lifeTitle">Life signals</h2>
+      <span class="label">Who else uses these frequencies</span>
+    </div>
+    <p class="value" id="lifeNow" role="status" aria-live="polite"></p>
+    <ul class="life-list" id="lifeList"></ul>
+    <div class="life-axis" aria-hidden="true"><span></span><div class="life-scale" id="lifeScale"></div><span></span></div>
+
+    <details class="fold">
+      <summary>Out of this console's reach</summary>
+      <dl class="life-beyond" id="lifeBeyond"></dl>
+    </details>
+
+    <p class="hint">Bands are published measurements, rounded; they vary between individuals and studies. A steady tone in someone's band is something they can sense, and a few will respond to it, but it is not their language: real calls carry rhythm, pulses and sweeps that one pure tone does not.</p>
+    <p class="hint"><b>Go gently.</b> Keep it quiet around animals, whose hearing is often sharper than yours, and stop if one seems distressed. Playing calls to wild animals can stress them and disrupt breeding, and is restricted in many parks and for protected species. Frequencies below about 60 Hz need a real subwoofer or the rig's driver: small speakers cannot make them.</p>
+  </section>
+
   <!-- ================================================================== LOG -->
   <section class="panel log" aria-labelledby="logTitle">
     <div class="panel-head">
@@ -385,6 +404,7 @@
 <script src="js/core/chladni.js"></script>
 <script src="js/core/disc.js"></script>
 <script src="js/core/liquid.js"></script>
+<script src="js/core/life.js"></script>
 <script src="js/audio/engine.js"></script>
 <script src="js/store/presets.js"></script>
 <script src="js/ui/dial.js"></script>
