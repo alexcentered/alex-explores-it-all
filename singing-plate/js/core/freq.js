@@ -7,7 +7,7 @@
   'use strict';
 
   var F_MIN = 20;
-  var F_MAX = 5000;
+  var F_MAX = 20000;               // the top of human hearing, and of ordinary sound hardware
   var STEP = 0.1;                 // finest resolution the console offers, in Hz
   var SPEED_OF_SOUND = 343;       // m/s in dry air at 20 degrees C
   var NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F',
@@ -72,7 +72,7 @@
 
   /*
    * The coarse dial is logarithmic: equal rotation = equal musical interval,
-   * so 20 to 200 Hz gets as much travel as 500 to 5000 Hz.
+   * so 20 to 200 Hz gets as much travel as 2 to 20 kHz.
    */
   function dialToFreq(t) {
     var x = clamp(t, 0, 1);

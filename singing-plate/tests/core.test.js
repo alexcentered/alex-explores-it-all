@@ -13,9 +13,9 @@ const near = (a, b, tol = 1e-6) =>
 
 /* ---------------------------------------------------------------- freq */
 
-test('freq: sanitize clamps to the 20 Hz - 5 kHz envelope', () => {
+test('freq: sanitize clamps to the 20 Hz - 20 kHz envelope', () => {
   assert.equal(freq.sanitize(5), 20);
-  assert.equal(freq.sanitize(99999), 5000);
+  assert.equal(freq.sanitize(99999), 20000);
   assert.equal(freq.sanitize(-440), 20);
 });
 
@@ -37,7 +37,7 @@ test('freq: repeated 0.1 Hz nudges do not drift', () => {
 
 test('freq: nudge respects the limits', () => {
   assert.equal(freq.nudge(20, -10), 20);
-  assert.equal(freq.nudge(4999.9, 10), 5000);
+  assert.equal(freq.nudge(19999.9, 10), 20000);
 });
 
 test('freq: note names and cents', () => {
@@ -64,14 +64,14 @@ test('freq: wavelength in air and formatting', () => {
 
 test('freq: dial mapping is logarithmic and round-trips', () => {
   near(freq.dialToFreq(0), 20);
-  near(freq.dialToFreq(1), 5000);
-  near(freq.dialToFreq(0.5), Math.sqrt(20 * 5000), 1e-9);
-  for (const f of [20, 55.5, 440, 1234.5, 5000]) {
+  near(freq.dialToFreq(1), 20000);
+  near(freq.dialToFreq(0.5), Math.sqrt(20 * 20000), 1e-9);
+  for (const f of [20, 55.5, 440, 1234.5, 5000, 20000]) {
     near(freq.dialToFreq(freq.freqToDial(f)), f, 1e-9);
   }
   assert.equal(freq.dialToFreq(-1), 20);
-  assert.equal(freq.dialToFreq(2), 5000);
-  assert.equal(freq.dialSnap(0.5), 316);
+  assert.equal(freq.dialToFreq(2), 20000);
+  assert.equal(freq.dialSnap(0.5), 632);
 });
 
 /* -------------------------------------------------------------- safety */
@@ -81,7 +81,7 @@ test('safety: commanded gain never exceeds the ceiling', () => {
     const ceiling = safety.dbToLin(ceilingDb);
     for (const waveform of safety.WAVEFORMS) {
       for (const volume of [0, 0.25, 0.5, 1, 7, -3]) {
-        for (const f of [20, 59, 60, 440, 5000]) {
+        for (const f of [20, 59, 60, 440, 5000, 20000]) {
           const g = safety.outputGain({ volume, ceilingDb, waveform, freq: f, lfGuard: false });
           assert.ok(g >= 0 && g <= ceiling + 1e-12, `gain ${g} over ceiling ${ceiling}`);
         }
@@ -125,6 +125,16 @@ test('safety: low frequency guard scales level below the knee', () => {
   assert.equal(safety.lfGuardFactor(20, false), 1);
   const guarded = safety.outputGain({ volume: 1, ceilingDb: 0, waveform: 'sine', freq: 30, lfGuard: true });
   near(guarded, 0.5);
+});
+
+test('safety: high-frequency cautions come in at the right points', () => {
+  assert.equal(safety.hfCaution(440), '');
+  assert.equal(safety.hfCaution(5000), '');
+  assert.equal(safety.hfCaution(5000.1), 'piercing');
+  assert.equal(safety.hfCaution(13999), 'piercing');
+  assert.equal(safety.hfCaution(14000), 'unheard');
+  assert.equal(safety.hfCaution(20000), 'unheard');
+  assert.equal(safety.hfCaution(NaN), '');
 });
 
 test('safety: limiter curve is transparent inside the ceiling and flat outside', () => {
@@ -203,7 +213,7 @@ test('sweep: plan describes exactly what the oscillator must do next', () => {
 test('sweep: configuration is clamped to safe values', () => {
   const s = new Sweep({ from: 1, to: 99999, rate: 0 });
   assert.equal(s.from, 20);
-  assert.equal(s.to, 5000);
+  assert.equal(s.to, 20000);
   assert.ok(s.rate > 0);
   s.configure({ from: 'x', to: null, rate: -5 });
   assert.equal(s.from, 20);

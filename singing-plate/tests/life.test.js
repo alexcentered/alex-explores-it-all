@@ -14,8 +14,8 @@ test('life: every signal is complete, consistent and tunable on the console', ()
     assert.ok(life.EVIDENCE[s.evidence], `${s.id} has a known evidence level`);
     assert.ok(s.lo > 0 && s.lo < s.hi, `${s.id} band runs low to high`);
     // the band must overlap the console, and the tune point must be playable and inside the band
-    assert.ok(s.hi >= 20 && s.lo <= 5000, `${s.id} overlaps 20 Hz to 5 kHz`);
-    assert.ok(s.tune >= 20 && s.tune <= 5000, `${s.id} tune point is playable`);
+    assert.ok(s.hi >= 20 && s.lo <= 20000, `${s.id} overlaps 20 Hz to 20 kHz`);
+    assert.ok(s.tune >= 20 && s.tune <= 20000, `${s.id} tune point is playable`);
     assert.ok(s.tune >= s.lo && s.tune <= s.hi, `${s.id} tune point is inside its band`);
     assert.ok(s.note.endsWith('.'), `${s.id} note is a sentence`);
   }
@@ -32,8 +32,6 @@ test('life: uncertain claims are labelled as such', () => {
   assert.equal(by('primrose').evidence, 'early');
   assert.equal(by('corn').evidence, 'early');
   assert.equal(by('giraffe').evidence, 'unknown');
-  assert.equal(life.BEYOND.find((b) => b.id === 'space').evidence, 'unknown');
-  assert.match(life.BEYOND.find((b) => b.id === 'space').note, /nobody has answered/);
 });
 
 test('life: activeAt finds everyone sharing a frequency', () => {
@@ -43,6 +41,8 @@ test('life: activeAt finds everyone sharing a frequency', () => {
   assert.ok(at(250).includes('honeybee') && at(250).includes('bullfrog'));
   assert.deepEqual(at(4900), ['songbird', 'cricket']);
   assert.deepEqual(at(4200), ['songbird']);
+  assert.deepEqual(at(10000), ['dolphin']);
+  assert.deepEqual(at(18000), []);
   assert.deepEqual(at(1), []);
   assert.deepEqual(at(NaN), []);
 });
@@ -50,7 +50,8 @@ test('life: activeAt finds everyone sharing a frequency', () => {
 test('life: playable band is clipped to the console', () => {
   const by = (id) => life.SIGNALS.find((s) => s.id === id);
   assert.deepEqual(life.playable(by('elephant')), { lo: 20, hi: 35 });
-  assert.deepEqual(life.playable(by('songbird')), { lo: 1000, hi: 5000 });
+  assert.deepEqual(life.playable(by('songbird')), { lo: 1000, hi: 8000 });
+  assert.deepEqual(life.playable(by('dolphin')), { lo: 7000, hi: 15000 });
   assert.deepEqual(life.playable(by('bullfrog')), { lo: 200, hi: 400 });
 });
 
@@ -67,4 +68,39 @@ test('life: beyond-range entries are complete', () => {
     for (const key of ['id', 'who', 'band', 'note']) assert.ok(typeof b[key] === 'string' && b[key].length > 1);
     assert.ok(life.EVIDENCE[b.evidence]);
   }
+});
+
+/* --------------------------------------------------------- beyond Earth */
+
+test('life: the search list is real radio, and none of it is playable sound', () => {
+  assert.ok(life.SEARCH.length >= 6);
+  for (const e of life.SEARCH) {
+    for (const key of ['id', 'what', 'band', 'when', 'note']) assert.ok(typeof e[key] === 'string' && e[key].length > 2, `${e.id}.${key}`);
+    assert.match(e.band, /MHz|GHz/, `${e.id} is a radio frequency`);
+    assert.equal(e.tune, undefined, `${e.id} must not offer a tune point`);
+  }
+  assert.match(life.SEARCH.find((e) => e.id === 'blc1').note, /interference/);
+  assert.match(life.SEARCH.find((e) => e.id === 'wow').note, /never been explained/);
+});
+
+test('life: no reported being is given a frequency that the accounts do not give', () => {
+  assert.ok(life.REPORTS.length >= 5);
+  for (const r of life.REPORTS) {
+    for (const key of ['id', 'who', 'home', 'source', 'mode', 'frequency']) assert.ok(typeof r[key] === 'string' && r[key].length > 2, `${r.id}.${key}`);
+    assert.equal(r.frequency, 'None given', `${r.id} must not invent a frequency`);
+    assert.equal(r.tune, undefined);
+  }
+});
+
+test('life: accounts are worded as claims, and only the one with a published figure is tunable', () => {
+  const tunable = life.ACCOUNTS.filter((a) => a.tune !== undefined);
+  assert.deepEqual(tunable.map((a) => a.id), ['trill']);
+  assert.ok(tunable[0].tune >= tunable[0].lo && tunable[0].tune <= tunable[0].hi && tunable[0].hi <= 20000);
+  const by = (id) => life.ACCOUNTS.find((a) => a.id === id);
+  assert.match(by('sherman').frequency, /No frequency/);
+  assert.match(by('sherman').note, /only source/);
+  assert.match(by('ce5').note, /no session has produced verified contact/);
+  assert.match(by('trill').note, /not a published measurement/);
+  assert.match(by('schumann').note, /speaker cannot produce it/);
+  assert.ok(life.EVIDENCE.claim);
 });

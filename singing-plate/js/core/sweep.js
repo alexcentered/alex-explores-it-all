@@ -13,7 +13,7 @@
   'use strict';
 
   var F_MIN = 20;
-  var F_MAX = 5000;
+  var F_MAX = 20000;
   var RATE_MIN = 0.1;    // Hz per second
   var RATE_MAX = 500;
 

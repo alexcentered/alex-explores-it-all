@@ -47,7 +47,7 @@
   <section class="panel freq" aria-labelledby="freqTitle">
     <div class="panel-head">
       <h2 id="freqTitle">Frequency</h2>
-      <span class="label">20 Hz to 5 kHz</span>
+      <span class="label">20 Hz to 20 kHz</span>
     </div>
 
     <div class="readout">
@@ -66,7 +66,7 @@
     <div class="tuning">
       <div class="dial-wrap">
         <svg class="dial" id="dial" tabindex="0" role="slider" aria-label="Coarse frequency dial"
-             aria-valuemin="20" aria-valuemax="5000" aria-valuenow="440" aria-valuetext="440.0 hertz"></svg>
+             aria-valuemin="20" aria-valuemax="20000" aria-valuenow="440" aria-valuetext="440.0 hertz"></svg>
         <p class="label center">Coarse</p>
       </div>
 
@@ -77,7 +77,7 @@
             <button class="btn step" type="button" data-nudge="-10" aria-label="Down 10 hertz">−10</button>
             <button class="btn step" type="button" data-nudge="-1" aria-label="Down 1 hertz">−1</button>
             <button class="btn step" type="button" data-nudge="-0.1" aria-label="Down 0.1 hertz">−0.1</button>
-            <input class="input num" id="freqInput" type="number" inputmode="decimal" min="20" max="5000" step="0.1" value="440.0">
+            <input class="input num" id="freqInput" type="number" inputmode="decimal" min="20" max="20000" step="0.1" value="440.0">
             <button class="btn step" type="button" data-nudge="0.1" aria-label="Up 0.1 hertz">+0.1</button>
             <button class="btn step" type="button" data-nudge="1" aria-label="Up 1 hertz">+1</button>
             <button class="btn step" type="button" data-nudge="10" aria-label="Up 10 hertz">+10</button>
@@ -239,11 +239,11 @@
     <div class="form-grid three">
       <div class="field">
         <label class="label" for="swFrom">From, Hz</label>
-        <input class="input" id="swFrom" type="number" inputmode="decimal" min="20" max="5000" step="1" value="100">
+        <input class="input" id="swFrom" type="number" inputmode="decimal" min="20" max="20000" step="1" value="100">
       </div>
       <div class="field">
         <label class="label" for="swTo">To, Hz</label>
-        <input class="input" id="swTo" type="number" inputmode="decimal" min="20" max="5000" step="1" value="3000">
+        <input class="input" id="swTo" type="number" inputmode="decimal" min="20" max="20000" step="1" value="3000">
       </div>
       <div class="field">
         <label class="label" for="swRate">Rate, Hz/s</label>
@@ -279,8 +279,24 @@
     <div class="life-axis" aria-hidden="true"><span></span><div class="life-scale" id="lifeScale"></div><span></span></div>
 
     <details class="fold">
-      <summary>Out of this console's reach</summary>
+      <summary>Too high for any speaker</summary>
       <dl class="life-beyond" id="lifeBeyond"></dl>
+    </details>
+
+    <details class="fold" id="beyondEarth" open>
+      <summary>Beyond Earth</summary>
+      <p class="value">No contact with a non-human intelligence has been verified, so no frequency is known to reach one. What does exist is below, in lists kept apart on purpose: what has been measured or sent, and what has been claimed.</p>
+
+      <h3 class="label">Listened for and sent · radio, measured</h3>
+      <dl class="life-beyond" id="searchList"></dl>
+
+      <h3 class="label">Reported beings · claims, not measurements</h3>
+      <ul class="report-list" id="reportList"></ul>
+
+      <h3 class="label">Sounds and tones in contact accounts · claims</h3>
+      <ul class="account-list" id="accountList"></ul>
+
+      <p class="hint">Why none of the measured frequencies can be played here: sound needs air and space has none, so anything sent between stars has to be radio or light. Those radio frequencies are roughly a hundred thousand times higher than a speaker can go; they need a radio transmitter and a licence, and the band around the hydrogen line is reserved for listening, so transmitting in it is prohibited. In nearly every account above, the beings are said to communicate by thought, which is why none of them comes with a frequency.</p>
     </details>
 
     <p class="hint">Bands are published measurements, rounded; they vary between individuals and studies. A steady tone in someone's band is something they can sense, and a few will respond to it, but it is not their language: real calls carry rhythm, pulses and sweeps that one pure tone does not.</p>
@@ -349,7 +365,7 @@
   <section class="panel brief" aria-labelledby="briefTitle">
     <div class="panel-head"><h2 id="briefTitle">Range safety</h2></div>
     <ol class="brief-list">
-      <li><b>Ears first.</b> Earplugs or defenders on before the tone. Above 1 kHz it is shrill at any useful level.</li>
+      <li><b>Ears first.</b> Earplugs or defenders on before the tone. Above 1 kHz it is shrill at any useful level, and near the top of the range you may not hear it while children and pets still do.</li>
       <li><b>Start low.</b> Bring the amplifier up from zero each session. Raise volume only until the sand moves.</li>
       <li><b>Wired and clean.</b> Cable from computer to amplifier, system EQ and sound enhancements off.</li>
       <li><b>Mind the low end.</b> Long, loud tones under about 60 Hz can overheat the driver or bottom it out.</li>

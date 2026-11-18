@@ -529,7 +529,7 @@
     el.labFreqRange.value = Math.round(F.freqToDial(clamp(wave.freq, F.F_MIN, F.F_MAX)) * 1000);
     el.labNote.textContent = wave.audible ? F.noteInfo(wave.freq).label + ' ' + F.formatCents(F.noteInfo(wave.freq).cents) : '';
     el.freqHint.hidden = byFreq || wave.audible;
-    el.freqHint.textContent = 'Outside the 20 Hz to 5 kHz the console can play.';
+    el.freqHint.textContent = 'Outside the 20 Hz to 20 kHz the console can play.';
 
     var n = wave.numbers;
     if (document.activeElement !== el.modeA) el.modeA.value = n[0];

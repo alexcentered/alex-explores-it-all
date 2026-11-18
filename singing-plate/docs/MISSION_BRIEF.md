@@ -1,5 +1,7 @@
 # Operation Singing Plate: Cymatics Rig Build Plan
 
+> This is the original plan, kept as written. The app has since grown past it: the range now runs to 20 kHz, and the stretch goals and phase two are built. See the README for what exists today.
+
 **Mission:** build a desktop Chladni plate rig, driven by a custom frequency app built with Claude Code, to see sound draw patterns in sand.
 
 ## 1. How it works

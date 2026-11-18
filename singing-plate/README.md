@@ -20,14 +20,14 @@ Test with headphones at low volume before connecting the amplifier.
 
 | Area | What you get |
 | --- | --- |
-| Frequency | 20 Hz to 5 kHz. Logarithmic coarse dial, exact entry, ±0.1 / ±1 / ±10 Hz buttons, a spring-return fine trim, and keyboard nudges |
+| Frequency | 20 Hz to 20 kHz, the full range of human hearing. Logarithmic coarse dial, exact entry, ±0.1 / ±1 / ±10 Hz buttons, a spring-return fine trim, and keyboard nudges |
 | Readout | Frequency, nearest note with cents offset, wavelength in air, period, and the ripple spacing to expect on water |
 | Waveform | Sine by default; triangle and square for experiments |
 | Output | Fade in and fade out on every start, stop and waveform change; volume; hard limiter with adjustable ceiling; low-frequency driver guard; live scope and peak meter |
 | Sweep | Glide between two frequencies at a set rate in Hz per second. Lock freezes the sweep while the tone keeps holding; resume carries on from wherever you nudged to |
 | Simulator | Predicted sand pattern for the current frequency on a square or round plate, a list of predicted resonances to jump to, and one-button alignment of the model to your real plate |
 | Pattern log | Save a frequency with a name, notes, the medium on the plate and a photo, taken with the camera or chosen from files. Recall, edit, delete, export and import |
-| Life signals | Who else signals at the frequency being played: sixteen species drawn as bands on a shared frequency scale, with a Tune button for each |
+| Life signals | Who else signals at the frequency being played: seventeen species drawn as bands on a shared frequency scale, with a Tune button for each, plus a Beyond Earth section that separates what has been measured from what has been claimed |
 | Theme | Dark by default, light on request, monochrome throughout |
 
 ## Keys
@@ -68,6 +68,8 @@ Also:
 
 - Volume is not remembered between sessions. Every session starts at 25%.
 - A square wave carries twice the power of a sine at the same peak, so it is trimmed 3 dB.
+- Above 5 kHz the console warns that the tone is piercing and hard on small speakers. From 14 kHz it warns that you may not hear it while children and pets do, so it must not be turned up because it sounds quiet.
+- Near the very top of the range browsers fade their own oscillator, so the output is quieter than commanded (about 1 dB down at 18 kHz and 7 dB at 20 kHz on a 44.1 kHz sound card), never louder. The peak meter shows the level actually produced.
 - The driver guard scales level down below 60 Hz, where long strokes overheat a driver or bottom it out. It can be switched off, and the console says so when it is.
 - `Esc` silences the output from anywhere on the page.
 
@@ -91,7 +93,7 @@ Swap the sand for a shallow dish of water and the surface breaks into standing r
 
 ## Life signals
 
-The console lists the bands other living things are known to signal in, drawn against the same 20 Hz to 5 kHz scale as the dial. A line marks the frequency being played, the rows it crosses light up, and **Tune** jumps to a representative frequency in any band.
+The console lists the bands other living things are known to signal in, drawn against the same 20 Hz to 20 kHz scale as the dial. A line marks the frequency being played, the rows it crosses light up, and **Tune** jumps to a representative frequency in any band.
 
 | Who | Band | What it is |
 | --- | --- | --- |
@@ -111,12 +113,50 @@ The console lists the bands other living things are known to signal in, drawn ag
 | Songbirds | 1 to 8 kHz | Song |
 | Spring peeper frog | 2.5 to 3.5 kHz | Peep |
 | Field cricket | 4.5 to 5.2 kHz | Calling song |
+| Bottlenose dolphin | 7 to 15 kHz | Signature whistle, used much like a name |
 
-Out of the console's reach, and listed for reference: bottlenose dolphin signature whistles (7 to 15 kHz), rat calls (22 kHz alarm, 50 kHz play), bat echolocation (mostly 20 to 100 kHz), and the radio frequencies used to listen for and signal to life beyond Earth (the hydrogen line at 1,420.4 MHz; the 1974 Arecibo message at 2,380 MHz). Nobody has answered the last of those.
+Too high for any speaker, and listed for reference: rat calls (22 kHz alarm, 50 kHz play) and bat echolocation (mostly 20 to 100 kHz).
 
 **Read this before calling it communication.** The bands are published measurements, rounded, and they vary between individuals, populations and studies. A steady tone in an animal's band is something it can sense, and in a few cases will respond to: female crickets walk toward a speaker playing the male's tone, and male mosquitoes are drawn to the female's flight tone. That is not the same as speaking its language. Real signals carry rhythm, pulses and sweeps that one pure tone does not. The plant entries rest on a small number of studies and are labelled as early evidence.
 
 **Go gently.** Keep the level low around animals, stop if one seems distressed, and do not play calls to wild animals: it can stress them and disrupt breeding, and it is restricted in many parks and for protected species.
+
+### Beyond Earth
+
+No contact with a non-human intelligence has been verified, so no frequency is known to reach one. The console says so, and then lists what does exist in three groups that are kept apart on purpose.
+
+**Listened for and sent.** Real frequencies, all radio, none of them sound:
+
+| What | Frequency | When | Outcome |
+| --- | --- | --- | --- |
+| The hydrogen line | 1,420.406 MHz | listened on since 1960 | Where most searches listen |
+| The water hole | 1,420 to 1,720 MHz | named 1971 | The quiet band searches favour |
+| The Wow! signal | 1,420.456 MHz | 15 August 1977 | 72 seconds, never repeated, never explained |
+| BLC1 | 982.002 MHz | April to May 2019 | Almost certainly interference from Earth |
+| Breakthrough Listen | 1 to 11 GHz | since 2016 | Nothing confirmed |
+| The Arecibo message | 2,380 MHz | sent 16 November 1974 | In transit for about 25,000 years |
+| Cosmic Call | 5.01 GHz | sent 1999 and 2003 | In transit; earliest arrival in the 2030s |
+
+**Reported beings.** Greys, Nordics and Pleiadians, Reptilians, Arcturians, and Insectoids or Mantis beings, each with where the account comes from and how the beings are said to communicate. Every one is labelled an unverified claim. None comes with a frequency, because the accounts do not give one: the beings are nearly always said to communicate by thought.
+
+**Sounds and tones in contact accounts.**
+
+- **Dan Sherman.** In *Above Black* (1997) Sherman, a former US Air Force sergeant, says he was trained under a programme he calls Project Preserve Destiny to exchange messages with Greys by thought alone. Published summaries describe training exercises with tones, but the communication itself as mental, intended for a time when all electromagnetic links would be down. No frequency is given, and by his own description none would apply. He is the only source for the programme.
+- **CE-5 sessions.** Groups following Steven Greer's protocol play recorded tones alongside meditation and lights. No reliable source gives the tones a frequency, and no session has produced verified contact.
+- **The crop circle trill.** A trilling sound reported near crop circles, put at 5.0 to 5.2 kHz in popular accounts. This is the only entry with a figure a speaker can play, so it has a Tune button. It is not a published measurement, and birds and insects sing in the same band.
+- **The Schumann resonance.** 7.83 Hz, real, but a radio-wave resonance driven by lightning, not a sound and not a signal.
+
+Why the measured frequencies cannot be played: sound needs air and space has none, so anything sent between stars is radio or light. Those frequencies are roughly a hundred thousand times above a speaker's reach, need a transmitter and a licence, and the band around the hydrogen line is reserved for listening.
+
+One gap in the research: Sherman's own interview transcript could not be read when this was written, so the summary of his account rests on his publisher's description, reviews and later coverage.
+
+Sources for Beyond Earth:
+
+- Search and messages: [SETI League on the water hole](https://setileague.org/general/waterhol.htm), [SETI Institute observations](https://seti.org/seti-institute/project/details/seti-observations), [the Wow! signal](https://en.wikipedia.org/wiki/Wow!_signal), [Astronomy magazine on BLC1](https://www.astronomy.com/?p=117439), [Breakthrough Listen receiver bands](https://arxiv.org/pdf/2002.06162), [the Arecibo message of November 1974](https://ui.adsabs.harvard.edu/abs/10.1016/0019-1035(75)90116-5/abstract), [Cosmic Call](https://en.wikipedia.org/wiki/Cosmic_Call)
+- Dan Sherman: [the book's own site](https://aboveblack.com/), [publisher's listing](https://store.bookbaby.com/book/above-black1), [review](https://www.theseekerbooks.com/articles/aboveblack.htm), [later coverage](https://newspaceeconomy.ca/2025/10/30/telepathic-soldiers-and-alien-codes-inside-the-nsas-alleged-project-preserve-destiny)
+- Reported beings: [list of alleged extraterrestrial beings](https://en.wikipedia.com/wiki/List_of_alleged_extraterrestrial_beings), [Grey alien](https://www.Wikipedia.com/wiki/Grey_alien), [Sky at Night on Zeta Reticuli](https://www.skyatnightmagazine.com/space-science/zeta-reticuli-binary-star-sytem)
+- CE-5: [overview of the protocol](https://hangar1publishing.com/blogs/ufos-uaps-and-aliens/fifth-kind-contact) (a secondary source; no primary source for the tones was found)
+- Crop circle trill: a NEXUS magazine article, "Sound and crop circles" (a popular magazine, not a measurement)
 
 Sources for the bands:
 
@@ -134,9 +174,8 @@ Sources for the bands:
 - Mosquito: [Cornell on Cator et al. 2009](https://news.cornell.edu/node/272570), [follow-up study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6375921/)
 - Songbirds: [Cornell Lab, All About Birds](https://www.allaboutbirds.org/news/?p=15841), [hearing in a small songbird](https://pubmed.ncbi.nlm.nih.gov/38656337/)
 - Cricket: [carrier frequency and female tuning in field crickets](https://pmc.ncbi.nlm.nih.gov/articles/PMC2500168)
-- Dolphin: [DOSITS on signature whistles](https://dosits.org/animals/use-of-sound/marine-mammal-communication/individual-specific-vocalizations)
+- Dolphin: [DOSITS on signature whistles](https://dosits.org/animals/use-of-sound/marine-mammal-communication/individual-specific-vocalizations), [SeaWorld on bottlenose dolphin communication](https://seaworld.org/animals/all-about/bottlenose-dolphin/communication/)
 - Rat: [Panksepp, laughing rats](https://www.museumofplay.org/app/uploads/2022/01/2-3-article-laughing-rats-panksepp.pdf)
-- Beyond Earth: [SETI League on the water hole](https://setileague.org/general/waterhol.htm), [SETI Institute observations](https://seti.org/seti-institute/project/details/seti-observations), [the Arecibo message of November 1974](https://ui.adsabs.harvard.edu/abs/10.1016/0019-1035(75)90116-5/abstract)
 - Bats: the commonly quoted range, not checked against a source when this table was written
 
 ## The 3D lab

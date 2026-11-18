@@ -127,6 +127,14 @@
   function renderGuard() {
     var below = state.freq < safety.LF_KNEE_HZ;
     var note = el.guardNote;
+    var high = safety.hfCaution(state.freq);
+    if (high) {
+      note.textContent = high === 'unheard'
+        ? 'You may barely hear this, but children and pets hear it clearly. Do not turn it up because it sounds quiet.'
+        : 'Piercing at any useful level, and hard on small speakers. Keep the volume low and the session short.';
+      note.hidden = false;
+      return;
+    }
     if (!below) { note.hidden = true; return; }
     if (state.lfGuard) {
       var db = safety.linToDb(safety.lfGuardFactor(state.freq, true));
@@ -178,7 +186,7 @@
     el.lifeList.replaceChildren(frag);
 
     var scale = document.createDocumentFragment();
-    [[20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k']].forEach(function (t) {
+    [[20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k'], [10000, '10k'], [20000, '20k']].forEach(function (t) {
       var tick = make('span', '', t[1]);
       tick.style.left = F.freqToDial(t[0]) * 100 + '%';
       scale.appendChild(tick);
@@ -195,8 +203,72 @@
       beyond.appendChild(wrap);
     });
     el.lifeBeyond.replaceChildren(beyond);
+    buildBeyondEarth();
 
     el.lifeList.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tune]');
+      if (btn) setFrequency(Number(btn.dataset.tune));
+    });
+  }
+
+  /*
+   * Beyond Earth: measurements in one list, claims in others. The layout
+   * keeps them apart so a claim is never read as a measurement.
+   */
+  function buildBeyondEarth() {
+    var life = SP.life;
+
+    var search = document.createDocumentFragment();
+    life.SEARCH.forEach(function (e) {
+      var wrap = make('div');
+      var dt = make('dt', '', e.what + ' ');
+      dt.appendChild(make('span', '', '· ' + e.band));
+      dt.appendChild(make('small', '', e.when));
+      wrap.appendChild(dt);
+      wrap.appendChild(make('dd', '', e.note));
+      search.appendChild(wrap);
+    });
+    el.searchList.replaceChildren(search);
+
+    var reports = document.createDocumentFragment();
+    life.REPORTS.forEach(function (r) {
+      var li = make('li', 'report');
+      li.appendChild(make('div', 'report-who', r.who));
+      li.appendChild(make('div', 'life-tag', life.EVIDENCE.claim));
+      var dl = make('dl');
+      [['Home', r.home], ['Where the account comes from', r.source],
+        ['Said to communicate by', r.mode], ['Frequency', r.frequency]].forEach(function (row) {
+        var wrap = make('div');
+        wrap.appendChild(make('dt', '', row[0]));
+        wrap.appendChild(make('dd', '', row[1]));
+        dl.appendChild(wrap);
+      });
+      li.appendChild(dl);
+      reports.appendChild(li);
+    });
+    el.reportList.replaceChildren(reports);
+
+    var accounts = document.createDocumentFragment();
+    life.ACCOUNTS.forEach(function (a) {
+      var li = make('li', 'account');
+      var head = make('div');
+      head.appendChild(make('div', 'account-what', a.what));
+      head.appendChild(make('div', 'account-freq', a.frequency));
+      head.appendChild(make('div', 'life-tag', a.tag || life.EVIDENCE.claim));
+      li.appendChild(head);
+      if (a.tune !== undefined) {
+        var tune = make('button', 'btn', 'Tune to ' + a.tune.toLocaleString('en-US') + ' Hz');
+        tune.type = 'button';
+        tune.dataset.tune = a.tune;
+        li.appendChild(tune);
+      } else {
+        li.appendChild(make('span'));
+      }
+      li.appendChild(make('p', 'account-note', a.note));
+      accounts.appendChild(li);
+    });
+    el.accountList.replaceChildren(accounts);
+    el.accountList.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-tune]');
       if (btn) setFrequency(Number(btn.dataset.tune));
     });
@@ -432,7 +504,7 @@
     var mode = chladni.nearestMode(modes, state.freq);
     if (!mode) {
       el.simMode.textContent = 'None';
-      el.simModeHz.textContent = 'in the 20 Hz to 5 kHz range';
+      el.simModeHz.textContent = 'in the 20 Hz to 20 kHz range';
       el.simDelta.textContent = '--';
       el.jumpBtn.disabled = el.alignBtn.disabled = true;
       nearest = null;
@@ -1020,9 +1092,9 @@
   /* ------------------------------------------------------------- init */
 
   function dialTicks() {
-    var labels = { 20: '20', 50: '50', 100: '100', 200: '200', 500: '500', 1000: '1k', 2000: '2k', 5000: '5k' };
+    var labels = { 20: '20', 50: '50', 100: '100', 200: '200', 500: '500', 1000: '1k', 2000: '2k', 5000: '5k', 10000: '10k', 20000: '20k' };
     var ticks = [];
-    [10, 100, 1000].forEach(function (decade) {
+    [10, 100, 1000, 10000].forEach(function (decade) {
       for (var k = 1; k <= 9; k++) {
         var f = decade * k;
         if (f < F.F_MIN || f > F.F_MAX) continue;
@@ -1040,7 +1112,7 @@
       'swFrom', 'swTo', 'swRate', 'swGo', 'swReset', 'swFill', 'swHead', 'swTicks', 'swEta',
       'swState', 'swSpan', 'swHint', 'plate', 'simMode', 'simModeHz', 'simDelta', 'scatterBtn',
       'jumpBtn', 'plShape', 'plSideLabel', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
-      'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond',
+      'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond', 'searchList', 'reportList', 'accountList',
       'pMedium', 'cameraBtn', 'cameraDialog', 'cameraClose', 'cameraVideo', 'cameraPick', 'cameraPickField',
       'cameraMsg', 'cameraShoot',
       'modeList', 'modeCount', 'sortBtn', 'exportBtn', 'importInput', 'logForm', 'formTitle',
