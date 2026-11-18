@@ -3,10 +3,14 @@
  *
  * Signal chain:
  *
- *   oscillator -> envelope -> master gain -> hard limiter -> analyser -> out
- *   (one "voice")  (fades)    (volume,       (clips at the   (scope and
- *                              ceiling,       ceiling)        meter)
+ *   oscillator -> envelope -> master gain -> pulse -> hard limiter -> analyser -> out
+ *   (one "voice")  (fades)    (volume,       (slow    (clips at the   (scope and
+ *                              ceiling,       swell)   ceiling)        meter)
  *                              LF guard)
+ *
+ * The pulse stage is how a rate too slow to hear gets heard: it swells and
+ * fades an audible tone that many times a second. It only ever turns the
+ * level down from where the master gain set it, never up.
  *
  * Every start, stop and waveform change goes through the envelope, so the
  * output never steps: a step is a click, and a click is a hammer blow to a
@@ -40,6 +44,9 @@
     this._voice = null;
     this._ramp = null;      // active sweep: { from, to, t0, dur }
     this._master = null;
+    this._pulse = null;
+    this._lfo = null;
+    this.pulseRate = 0;       // Hz; 0 means the pulse stage is off
     this._limiter = null;
     this._analyser = null;
     this._buf = null;
@@ -67,8 +74,12 @@
     this._analyser.smoothingTimeConstant = 0;
     this._buf = new Float32Array(this._analyser.fftSize);
 
-    this._master.connect(this._limiter);
+    this._pulse = ctx.createGain();
+    this._pulse.gain.value = 1;
+    this._master.connect(this._pulse);
+    this._pulse.connect(this._limiter);
     this._limiter.connect(this._analyser);
+    if (this.pulseRate > 0) this._startPulse();
     this._analyser.connect(ctx.destination);
   };
 
@@ -216,6 +227,47 @@
     this.params.ceilingDb = safety.sanitizeCeilingDb(db);
     if (this._limiter) this._limiter.curve = safety.limiterCurve(this.params.ceilingDb);
     this._applyGain();
+  };
+
+  /*
+   * Swell and fade the tone `rate` times a second; 0 switches it off.
+   * The pulse gain rides between 0 and 1 (a half, plus or minus a half), so
+   * the loudest moment equals the unpulsed level.
+   */
+  Engine.prototype.setPulse = function (rate) {
+    var r = Number(rate);
+    this.pulseRate = isFinite(r) && r > 0 ? Math.min(40, Math.max(0.1, r)) : 0;
+    if (!this.ctx) return;
+    if (this.pulseRate > 0) this._startPulse(); else this._stopPulse();
+  };
+
+  Engine.prototype._startPulse = function () {
+    var ctx = this.ctx, t = ctx.currentTime;
+    if (this._lfo) {
+      this._lfo.osc.frequency.setTargetAtTime(this.pulseRate, t, 0.05);
+      return;
+    }
+    var osc = ctx.createOscillator(), depth = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(this.pulseRate, t);
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.linearRampToValueAtTime(0.5, t + 0.15);
+    osc.connect(depth);
+    depth.connect(this._pulse.gain);
+    this._pulse.gain.setTargetAtTime(0.5, t, 0.05);
+    osc.start(t);
+    this._lfo = { osc: osc, depth: depth };
+  };
+
+  Engine.prototype._stopPulse = function () {
+    if (!this._lfo) return;
+    var lfo = this._lfo, t = this.ctx.currentTime;
+    lfo.depth.gain.cancelScheduledValues(t);
+    lfo.depth.gain.setTargetAtTime(0, t, 0.04);
+    this._pulse.gain.setTargetAtTime(1, t, 0.05);
+    lfo.osc.stop(t + 0.4);
+    lfo.osc.onended = function () { lfo.osc.disconnect(); lfo.depth.disconnect(); };
+    this._lfo = null;
   };
 
   Engine.prototype.setLfGuard = function (on) {

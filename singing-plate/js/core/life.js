@@ -19,7 +19,7 @@
 (function (root) {
   'use strict';
 
-  var F_MIN = 20;
+  var F_MIN = 1;
   var F_MAX = 20000;
 
   var EVIDENCE = {
@@ -30,7 +30,7 @@
   };
 
   /*
-   * Signals that fall at least partly inside the console's 20 Hz to 20 kHz.
+   * Signals that fall at least partly inside the console's 1 Hz to 20 kHz.
    *   lo, hi   the band in hertz
    *   tune     a representative frequency inside both the band and the console
    *   signal   what the sound is
@@ -40,10 +40,10 @@
     { id: 'whale-low', who: 'Blue and fin whales', lo: 10, hi: 40, tune: 20, evidence: 'documented',
       signal: 'Calls and pulses',
       note: 'The loudest, lowest voices on Earth. Fin whales repeat a pulse centred on 20 Hz; blue whale calls sit between 10 and 40 Hz and carry across ocean basins.' },
-    { id: 'elephant', who: 'African elephant', lo: 12, hi: 35, tune: 20, evidence: 'documented',
+    { id: 'elephant', who: 'African elephant', lo: 12, hi: 35, tune: 16, evidence: 'documented',
       signal: 'Rumbles',
       note: 'Adults rumble at 12 to 20 Hz, mostly below human hearing, to keep in contact over kilometres. Calves rumble higher, at 20 to 35 Hz.' },
-    { id: 'alligator', who: 'American alligator', lo: 18, hi: 20, tune: 20, evidence: 'documented',
+    { id: 'alligator', who: 'American alligator', lo: 18, hi: 20, tune: 19, evidence: 'documented',
       signal: 'Courtship bellow',
       note: 'A rumble too low to hear shakes the water on the male\'s back into leaping ripples: the same Faraday waves as the liquid experiments on this rig.' },
     { id: 'cat', who: 'Domestic cat', lo: 25, hi: 150, tune: 50, evidence: 'documented',
@@ -212,7 +212,8 @@
       note: 'Material channelled by Darryl Anka names 333,000 cycles per second as the threshold between physical and non-physical being, and puts people somewhere below it. It is described as a state of being, not a signal to send, and nothing measurable corresponds to it.',
       sims: [{ label: 'The 333,000 figure', real: 333000, octaves: -6 }] },
     { id: 'schumann', what: 'The Schumann resonance', frequency: '7.83 Hz, but it is not a sound', tag: 'Real, but not a signal',
-      note: 'Often called Earth\'s frequency and linked to contact in popular writing. It is real, but it is a radio-wave resonance driven by lightning in the gap between the ground and the upper atmosphere. Nothing ties it to any signal, and a speaker cannot produce it.',
+      lo: 7.8, hi: 7.9, tune: 7.8,
+      note: 'Often called Earth\'s frequency and linked to contact in popular writing. It is real, but it is a radio-wave resonance driven by lightning in the gap between the ground and the upper atmosphere, and nothing ties it to any signal. The console can now play 7.8 Hz, but as a pressure wave far too low to hear, and few speakers can produce it. The octave-shifted version is the one you can listen to.',
       sims: [{ label: 'The 7.83 Hz figure', real: 7.83, octaves: 4 }] }
   ];
 

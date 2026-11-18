@@ -201,12 +201,13 @@ h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.14em; text-transform: 
   max-width: 1480px;
   margin: 0 auto;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "freq" "out" "sweep" "sim" "life" "log" "brief";
+  grid-template-areas: "freq" "out" "sweep" "sim" "math" "life" "log" "brief";
 }
 .freq { grid-area: freq; }
 .sim { grid-area: sim; }
 .out { grid-area: out; }
 .sweep { grid-area: sweep; }
+.math { grid-area: math; }
 .life { grid-area: life; }
 .log { grid-area: log; }
 .brief { grid-area: brief; }
@@ -214,13 +215,13 @@ h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.14em; text-transform: 
 @media (min-width: 760px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: "freq freq" "out sweep" "sim sim" "life life" "log log" "brief brief";
+    grid-template-areas: "freq freq" "out sweep" "sim sim" "math math" "life life" "log log" "brief brief";
   }
 }
 @media (min-width: 1180px) {
   .grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(380px, 0.95fr);
-    grid-template-areas: "freq freq sim" "out sweep sim" "life life life" "log log log" "brief brief brief";
+    grid-template-areas: "freq freq sim" "out sweep sim" "math math math" "life life life" "log log log" "brief brief brief";
     align-items: start;
   }
 }
@@ -350,7 +351,10 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .seg input:checked + span { background: var(--solid); color: var(--on-solid); }
 .seg input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: 2px; }
 .seg.small span { min-height: 26px; padding: 3px 12px; font-size: 11px; }
-#shapeSeg span { padding: 6px 4px; }
+#shapeSeg span { padding: 6px 2px; font-size: 11.5px; letter-spacing: 0.02em; }
+.res-track { height: 26px; }
+.res-track .sweep-ticks span { top: 6px; bottom: 6px; }
+:root[data-color="on"] .res-track .sweep-head { background: var(--tone, var(--fg)); width: 3px; }
 .seg-field { gap: 7px; display: flex; flex-direction: column; }
 
 /* Checkbox */
@@ -682,6 +686,45 @@ a.entry-photo-link { display: block; border-radius: 9px; }
 .print-facts dd { font-size: 14px; }
 #printState[data-state="ok"] { color: var(--live); }
 #printState[data-state="bad"] { color: var(--caution); }
+
+/* -------------------------------------------------------------- colour */
+
+/*
+ * Colour is off by default and the console stays monochrome. Switched on,
+ * --tone carries the colour of the current frequency (see core/color.js)
+ * and the few elements below take it up.
+ */
+.tone-swatch { display: none; align-self: center; width: 14px; height: 54px; margin-left: 6px; border-radius: 7px; background: var(--tone, transparent); }
+:root[data-color="on"] .tone-swatch { display: block; }
+:root[data-color="on"] .dial-arc { stroke: var(--tone, var(--fg)); }
+:root[data-color="on"] .dial-pointer line { stroke: var(--tone, var(--fg)); }
+:root[data-color="on"] .life-track::after { background: var(--tone, var(--fg)); opacity: 1; width: 2px; }
+:root[data-color="on"] .life-row[data-active="true"] .life-bar { box-shadow: 0 0 0 1px var(--fg); }
+:root[data-color="on"] .life-bar { opacity: 0.55; }
+:root[data-color="on"] .life-row[data-active="true"] .life-bar { opacity: 1; }
+:root[data-color="on"] .tone-dot { display: inline-block; }
+#colorBtn[aria-pressed="true"] { background: var(--solid); color: var(--on-solid); border-color: var(--solid); }
+.tone-dot { display: none; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; border: 1px solid var(--line-strong); vertical-align: -1px; }
+
+/* ---------------------------------------------------------------- math */
+
+.math-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.math-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }
+.formula { font-size: 17px; font-weight: 500; letter-spacing: 0.02em; }
+.formula sup { font-size: 0.65em; }
+.math-card .value { font-size: 15px; font-variant-numeric: tabular-nums; }
+.math-head { margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--fg-soft); }
+.math .chips { max-height: none; }
+.math .chip[data-off="true"] { opacity: 0.4; cursor: default; }
+.chip .chip-dot { display: none; width: 8px; height: 8px; border-radius: 50%; align-self: center; }
+:root[data-color="on"] .chip .chip-dot { display: inline-block; }
+.math-intervals { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 720px) { .math-intervals { grid-template-columns: minmax(0, 1fr) 220px; } }
+.math-intervals > div { display: flex; flex-direction: column; gap: 10px; }
+.lissajous { width: 100%; max-width: 220px; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 12px; background: var(--well); justify-self: center; }
+.pulse { border-top: 1px solid var(--line); padding-top: 14px; }
+.pulse-row { display: grid; grid-template-columns: auto minmax(0, 120px); gap: 10px; align-items: center; }
+.math b { color: var(--fg-soft); }
 
 /* ------------------------------------------------------------ simulate */
 

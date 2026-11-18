@@ -31,6 +31,18 @@
   var HF_CAUTION_HZ = 5000;
   var HF_UNHEARD_HZ = 14000;
 
+  /*
+   * Below this the tone is infrasound: nobody hears it as a pitch, most
+   * speakers and many amplifiers cannot produce it at all, and a driver that
+   * can is making its longest strokes.
+   */
+  var INFRASOUND_HZ = 20;
+
+  function isInfrasound(freq) {
+    var f = Number(freq);
+    return f > 0 && f < INFRASOUND_HZ;
+  }
+
   /* Which high-frequency warning applies, if any: '', 'piercing' or 'unheard'. */
   function hfCaution(freq) {
     var f = Number(freq);
@@ -121,6 +133,8 @@
     HF_CAUTION_HZ: HF_CAUTION_HZ,
     HF_UNHEARD_HZ: HF_UNHEARD_HZ,
     hfCaution: hfCaution,
+    INFRASOUND_HZ: INFRASOUND_HZ,
+    isInfrasound: isInfrasound,
     WAVE_TRIM: WAVE_TRIM,
     WAVEFORMS: WAVEFORMS,
     dbToLin: dbToLin,

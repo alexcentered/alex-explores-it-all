@@ -21,13 +21,16 @@ Test with headphones at low volume before connecting the amplifier.
 
 | Area | What you get |
 | --- | --- |
-| Frequency | 20 Hz to 20 kHz, the full range of human hearing. Logarithmic coarse dial, exact entry, ±0.1 / ±1 / ±10 Hz buttons, a spring-return fine trim, and keyboard nudges |
+| Frequency | 1 Hz to 20 kHz: the full range of human hearing, plus the infrasound below it. Logarithmic coarse dial, exact entry, ±0.1 / ±1 / ±10 Hz buttons, a spring-return fine trim, and keyboard nudges |
 | Readout | Frequency, nearest note with cents offset, wavelength in air, period, and the ripple spacing to expect on water |
 | Waveform | Sine by default; triangle and square for experiments |
 | Output | Fade in and fade out on every start, stop and waveform change; volume; hard limiter with adjustable ceiling; low-frequency driver guard; live scope and peak meter |
 | Sweep | Glide between two frequencies at a set rate in Hz per second. Lock freezes the sweep while the tone keeps holding; resume carries on from wherever you nudged to |
 | Simulator | Predicted sand pattern for the current frequency on a square or round plate, a list of predicted resonances to jump to, and one-button alignment of the model to your real plate |
 | Pattern log | Save a frequency with a name, notes, the medium on the plate and a photo, taken with the camera or chosen from files. Recall, edit, delete, export and import |
+| Pulse | Swells and fades the tone at a slow rate, so a rate below hearing can be heard as a throb |
+| Colour | An optional toggle that shows every frequency as the colour of light it would be if raised by octaves. Off by default |
+| Relationships | The arithmetic behind the current frequency: rotation, light, radio, the tuned circuit, harmonics, intervals, and the Earth as a resonator |
 | Life signals | Who else signals at the frequency being played: seventeen species drawn as bands on a shared frequency scale, with a Tune button for each, plus a Beyond Earth section that separates what has been measured from what has been claimed |
 | Theme | Dark by default, light on request, monochrome throughout |
 
@@ -69,6 +72,7 @@ Also:
 
 - Volume is not remembered between sessions. Every session starts at 25%.
 - A square wave carries twice the power of a sine at the same peak, so it is trimmed 3 dB.
+- Below 20 Hz the console says the tone is infrasound, and offers to play it as a pulse on an audible tone.
 - Above 5 kHz the console warns that the tone is piercing and hard on small speakers. From 14 kHz it warns that you may not hear it while children and pets do, so it must not be turned up because it sounds quiet.
 - Near the very top of the range browsers fade their own oscillator, so the output is quieter than commanded (about 1 dB down at 18 kHz and 7 dB at 20 kHz on a 44.1 kHz sound card), never louder. The peak meter shows the level actually produced.
 - The driver guard scales level down below 60 Hz, where long strokes overheat a driver or bottom it out. It can be switched off, and the console says so when it is.
@@ -92,9 +96,51 @@ Set **Shape** to Round in Plate setup and the size becomes a diameter. A round p
 
 Swap the sand for a shallow dish of water and the surface breaks into standing ripples (Faraday waves) once the plate is shaking hard enough. They oscillate at half the drive frequency, and their spacing follows from gravity and surface tension, so the console shows the spacing to expect for the current frequency: measure it against your photo. This holds for water-like liquids a few millimetres deep. Thick mixes such as cornflour behave differently and are not modelled; log them with the Medium field and let the photo speak.
 
+## Below 20 Hz
+
+The console goes down to 1 Hz. Below 20 Hz is infrasound: nobody hears it as a pitch, and most speakers, and many amplifiers, cannot produce it at all. The rig's driver can, which is the point: it will shake a plate or a dish of liquid at rates you can watch.
+
+For ordinary speakers there is **Pulse**. It swells and fades an audible tone at a slow rate, so a 220 Hz tone pulsed at 7.8 Hz lets you hear 7.8 Hz as a throb. When the console is set below 20 Hz it offers this in one click. The pulse only ever turns the level down from where the volume set it.
+
+The driver guard matters most here. It scales level with frequency below 60 Hz, so at 6 Hz the output is a tenth of what the volume asks for.
+
+## Colour
+
+The **Colour** button is off by default, and the console stays monochrome. Switched on, every frequency is shown as the colour of light it would be if doubled until it became light. Concert A, 440 Hz, doubled forty times is 484 THz: orange.
+
+Visible light spans almost exactly one octave (380 to 760 nm), so this gives every note one place in the spectrum. Two things follow, and they are why colour is useful for seeing relationships:
+
+- Notes an octave apart are the same colour. In the harmonics list, f, 2f, 4f and 8f match.
+- A musical interval is a fixed step along the spectrum. A fifth is always the same distance round.
+
+With Colour on, the dial, the oscilloscope trace, the simulated sand, the species bands, and the 3D form all take it up.
+
+This is an analogy, not physics: sound is pressure in air and light is an electromagnetic wave, and only the arithmetic of doubling connects them. The far violet end of the spectrum is drawn as deepening blue.
+
+## Relationships
+
+A panel that shows the arithmetic behind whatever frequency is set. Every line is a formula that can be checked.
+
+| Card | Formula | At 440 Hz |
+| --- | --- | --- |
+| As a rotation | ω = 2π f | 2.76 krad/s |
+| As light | f × 2ⁿ | 40 octaves up: 483.8 THz, 620 nm, orange |
+| As a radio wave | λ = c / f | 681 km long; ULF; quarter wave 170 km |
+| As a tuned circuit | f = 1 / (2π √(L C)) | 0.1 µF needs a coil of 1.31 H |
+
+- **Harmonics:** f ÷ 4 up to 8f, with note names. Click one to tune to it.
+- **Intervals:** the small whole-number ratios (3:2, 4:3, 5:4 ...), each drawn as a Lissajous figure: one tone moves a dot side to side, the other up and down, and a simple ratio closes into a still shape.
+- **The Earth as a resonator:** radio waves trapped between the ground and the upper atmosphere. Light circles the Earth 7.49 times a second, which is c / (2π R). The textbook cavity rings at that times √(n(n+1)), giving 10.6 Hz; the measured value is 7.83 Hz, lower because the real cavity is leaky. The table lists both for five modes, each tunable.
+
+Why π is everywhere: anything that repeats can be drawn as a point going round a circle, and once round is 2π radians. Every formula on the panel is that circle in a different setting.
+
+On Tesla: his resonant transformer of 1891 is the tuned-circuit formula twice over, two circuits passing energy only when both ring at the same frequency. He argued in 1899 that the Earth itself could be made to ring electrically. The cavity resonance was worked out by Schumann in 1952 and measured in 1960; what Tesla actually detected in 1899 is still debated.
+
+Sources: [Schumann resonances](https://en.wikipedia.org/wiki/Schumann_resonances), [Plus Maths on the cavity formula](https://plus.maths.org/content/comment/9161), [Tesla coil](https://en.wikipedia.org/wiki/Tesla_coil), [Tesla's Colorado Springs notes](https://teslauniverse.com/nikola-tesla/books/nikola-tesla-colorado-springs-notes-1899-1900/18), [Tesla's induction motor](https://ethw.org/Tesla's_Electro-magnetic_motor), [the colours of music](https://jsbryaniv.github.io/the-colors-of-music).
+
 ## Life signals
 
-The console lists the bands other living things are known to signal in, drawn against the same 20 Hz to 20 kHz scale as the dial. A line marks the frequency being played, the rows it crosses light up, and **Tune** jumps to a representative frequency in any band.
+The console lists the bands other living things are known to signal in, drawn against the same 1 Hz to 20 kHz scale as the dial. A line marks the frequency being played, the rows it crosses light up, and **Tune** jumps to a representative frequency in any band.
 
 | Who | Band | What it is |
 | --- | --- | --- |
@@ -224,7 +270,7 @@ Background: [the Princeton PEAR lab](https://en.wikipedia.org/wiki/Princeton_Eng
 
 ## The 3D lab
 
-Four shapes, each chosen either by frequency or directly by mode numbers:
+Five shapes, each chosen either by frequency or directly by mode numbers:
 
 | Shape | What it shows | How frequency picks the form |
 | --- | --- | --- |
@@ -232,15 +278,26 @@ Four shapes, each chosen either by frequency or directly by mode numbers:
 | Disc | The same for a round plate: rings when driven at the centre, star shapes when picked by nodal diameters and circles | The round-plate model, at the console plate's size, thickness and metal |
 | Sphere | Standing waves on a ball, the shapes a vibrating droplet takes (spherical harmonics) | Rayleigh's formula for a water drop of the radius you set |
 | Room | Standing waves inside a cube, drawn as the sheets where the air stays still | Room-mode formula for a cube of the side you set |
+| Torus | Waves on a ring-shaped tube, standing as a chequer or rotating so the crests wind round like the turns of a coil | f = (c / 2π) √((m/a)² + (n/R)²) for a ring of the radius you set |
 
+- **Predicted resonances:** under the viewer, every resonance the model predicts for the current shape, lowest first, with a strip showing where they fall. Click one to go to that mode exactly.
+- **Colour:** the same toggle as the console; the form and its 2D pattern take the colour of the frequency.
 - **Viewer:** drag to orbit, scroll or pinch to zoom. The wave animates; **Freeze** stops it where it is and **Freeze at peak** stops it at its most pronounced.
 - **2D pattern:** the matching flat picture sits beside the 3D form: nodal lines on the plate, the sphere's still lines unrolled like a map, or a slice through the room.
 - **Pattern log:** any pattern saved on the console can be opened here, from the picker or from the **3D** button on a log entry. One logged on a round plate opens as a disc.
 - **Hear it:** plays the form's frequency through the same limited, faded output as the console.
 
+### The torus and the rotating field
+
+Unrolled, a torus is a sheet that joins up in both directions, so a wave must fit a whole number of times each way: m times round the tube, n times round the ring. The 2π in its formula is each of those paths being a circle.
+
+Two waves running opposite ways stand still as a chequer of nodes. One wave alone keeps travelling, and on a torus its crests wind round the ring in a spiral, like the windings of a toroidal coil. That travelling pattern is a rotating field, the idea behind Tesla's induction motor, patented in 1888. Choose **Rotating** or **Standing** under Symmetry to see both.
+
+The frequency treats the torus surface as a flat sheet wrapped both ways, which is exact for an idealised torus and an approximation for a real ring of air.
+
 ### Printing
 
-A wave pattern has no thickness, so each shape is given what a printer needs: the plate and disc get a base slab, the sphere a flat cut underneath so it stands, and the room's node sheets a wall thickness plus an optional slab that ties them together.
+A wave pattern has no thickness, so each shape is given what a printer needs: the plate and disc get a base slab, the sphere and torus a flat cut underneath so they sit still, and the room's node sheets a wall thickness plus an optional slab that ties them together.
 
 **Check and build** makes the print file at export resolution (finer than the preview, and independent of it) and inspects it:
 
@@ -274,6 +331,8 @@ js/core/            pure logic, no browser APIs: unit tested
   disc.js             round plate model (Bessel functions, free-edge modes)
   liquid.js           ripple spacing on a vibrated liquid
   life.js             bands other species signal in, Beyond Earth, simulations
+  color.js            frequency to colour, by octaves up to light
+  relations.js        harmonics, intervals, radio, the tuned circuit, the Earth
   chance.js           the statistics behind the line test
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL

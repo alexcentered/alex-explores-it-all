@@ -6,7 +6,8 @@
 (function (root) {
   'use strict';
 
-  var F_MIN = 20;
+  var F_MIN = 1;                  // below 20 Hz is infrasound: felt or seen on the rig, not heard
+  var HEARING_MIN = 20;
   var F_MAX = 20000;               // the top of human hearing, and of ordinary sound hardware
   var STEP = 0.1;                 // finest resolution the console offers, in Hz
   var SPEED_OF_SOUND = 343;       // m/s in dry air at 20 degrees C
@@ -72,7 +73,7 @@
 
   /*
    * The coarse dial is logarithmic: equal rotation = equal musical interval,
-   * so 20 to 200 Hz gets as much travel as 2 to 20 kHz.
+   * so 2 to 20 Hz gets as much travel as 2 to 20 kHz.
    */
   function dialToFreq(t) {
     var x = clamp(t, 0, 1);
@@ -90,6 +91,7 @@
 
   var api = {
     F_MIN: F_MIN,
+    HEARING_MIN: HEARING_MIN,
     F_MAX: F_MAX,
     STEP: STEP,
     SPEED_OF_SOUND: SPEED_OF_SOUND,

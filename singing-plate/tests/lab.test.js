@@ -303,3 +303,76 @@ test('mesh: binary STL has the right layout and unit normals', () => {
     near(Math.hypot(view.getFloat32(o, true), view.getFloat32(o + 4, true), view.getFloat32(o + 8, true)), 1, 1e-6);
   }
 });
+
+/* --------------------------------------------------------------- torus */
+
+test('forms: torus frequencies follow the wrapped-sheet formula', () => {
+  // 20 cm ring: one wave round the ring is c / (2 pi R) = 343 / (2 pi 0.2) = 272.95 Hz
+  near(forms.torusFrequency(0, 1, 20), 272.95, 0.01);
+  near(forms.torusFrequency(0, 3, 20), 3 * 272.95, 0.03);
+  // one wave round the tube is higher by 1 / aspect, since the tube is the shorter way round
+  near(forms.torusFrequency(1, 0, 20) / forms.torusFrequency(0, 1, 20), 1 / forms.TORUS_ASPECT, 1e-9);
+  // the two directions add like the sides of a right triangle
+  near(forms.torusFrequency(1, 1, 20), Math.hypot(forms.torusFrequency(1, 0, 20), forms.torusFrequency(0, 1, 20)), 1e-9);
+  near(forms.torusFrequency(0, 1, 40) / forms.torusFrequency(0, 1, 20), 0.5, 1e-9);
+});
+
+test('forms: torus mode table, lookup and limits', () => {
+  const table = forms.torusTable(20, 5000);
+  assert.deepEqual([table[0].m, table[0].n], [0, 1]);
+  for (let i = 1; i < table.length; i++) assert.ok(table[i].f >= table[i - 1].f);
+  assert.ok(table.every((t) => !(t.m === 0 && t.n === 0)));
+  assert.equal(forms.torusTable(20, 5000, 12).length, 12);
+  const t = table[9];
+  assert.deepEqual(forms.torusModeFor(t.f + 0.5, 20), { m: t.m, n: t.n });
+  assert.deepEqual(forms.sanitizeTorusMode(0, 0), { m: 0, n: 1 });
+  assert.deepEqual(forms.sanitizeTorusMode(99, -4), { m: forms.TORUS_INDEX_MAX, n: 0 });
+});
+
+test('forms: a standing wave breathes in place, a rotating one travels', () => {
+  const R = 48, T = 24, m = 2, n = 3;
+  const at = (v, i, j) => v[i * T + j];
+  // standing: the shape is fixed and only its size changes with phase
+  const s0 = forms.torusValues(m, n, false, 0, R, T), s1 = forms.torusValues(m, n, false, 1, R, T);
+  near(at(s1, 5, 7), at(s0, 5, 7) * Math.cos(1), 1e-6);
+  near(at(forms.torusValues(m, n, false, Math.PI / 2, R, T), 5, 7), 0, 1e-6);
+  // rotating: a later moment is the same pattern moved round the ring. n waves in R steps,
+  // so a phase of 2 pi n / R * k shifts it by exactly k steps.
+  const r0 = forms.torusValues(m, n, true, 0, R, T);
+  const shift = 4, r1 = forms.torusValues(m, n, true, 2 * Math.PI * n / R * shift, R, T);
+  for (const [i, j] of [[0, 0], [7, 3], [20, 11]]) near(at(r1, (i + shift) % R, j), at(r0, i, j), 1e-5);
+  // and its peak never fades: somewhere it is always at full height
+  let peak = 0;
+  for (const v of forms.torusValues(m, n, true, 0.7, R, T)) peak = Math.max(peak, Math.abs(v));
+  near(peak, 1, 0.02);
+});
+
+test('mesh: torus is a printable one-piece solid with a hole through it', () => {
+  const R = 64, T = 32;
+  const plain = mesh.inspect(mesh.buildTorus(new Float32Array(R * T), R, T, { diameter: 80, aspect: forms.TORUS_ASPECT, amplitude: 0.3, cut: 0 }));
+  assert.equal(plain.watertight && plain.oriented && plain.components === 1, true);
+  near(plain.size[0], 80, 0.05); near(plain.size[1], 80, 0.05);
+  // volume of a torus is 2 pi^2 R a^2
+  const ringR = 80 / (2 * (1 + forms.TORUS_ASPECT)), a = forms.TORUS_ASPECT * ringR;
+  near(plain.volume, 2 * Math.PI ** 2 * ringR * a * a, 2 * Math.PI ** 2 * ringR * a * a * 0.02);
+  near(plain.min[2], 0, 1e-5);
+  // a closed surface with one hole has Euler characteristic V - E + F = 0 (a ball would give 2)
+  const V = plain.vertices, F = plain.triangles, E = F * 3 / 2;
+  assert.equal(V - E + F, 0);
+
+  for (const rotating of [false, true]) {
+    const v = forms.torusValues(3, 5, rotating, 0, R, T);
+    const r = mesh.inspect(mesh.buildTorus(v, R, T, { diameter: 80, aspect: forms.TORUS_ASPECT, amplitude: 0.35, cut: 3 }));
+    assert.equal(r.watertight && r.oriented && r.components === 1, true, `rotating=${rotating}`);
+    near(r.min[2], 0, 1e-5);
+  }
+});
+
+test('forms: torus 2D map is RMS-scaled', () => {
+  for (const rotating of [false, true]) {
+    const map = forms.torusMap(2, 3, rotating, 0.4, 32);
+    let sumSq = 0;
+    for (const v of map) { assert.ok(isFinite(v) && v >= 0); sumSq += v * v; }
+    near(Math.sqrt(sumSq / map.length), 1, 1e-4);
+  }
+});

@@ -16,6 +16,17 @@
  *           different waves at the same frequency, so they can be blended;
  *           the blend is what bends the flat node planes into curved sheets.
  *
+ *   torus   waves running round a ring-shaped tube: once round the ring,
+ *           and once round the tube's own girth. Unrolled, a torus is a
+ *           sheet that joins up in both directions, so a wave must fit a
+ *           whole number of times each way:
+ *             f = (c / 2 pi) sqrt( (m / a)^2 + (n / R)^2 )
+ *           with m waves round the tube (radius a) and n round the ring
+ *           (radius R). The 2 pi is there because each path is a circle.
+ *           Two such waves can stand still as a chequered pattern, or one
+ *           can travel, its crests winding round the ring like the turns of
+ *           a coil: a rotating field.
+ *
  * Pure functions only.
  */
 (function (root) {
@@ -199,6 +210,86 @@
     return scaleToRms(out, sumSq);
   }
 
+  /* -------------------------------------------------------------- torus */
+
+  var TORUS_ASPECT = 0.38;         // tube radius as a fraction of ring radius
+  var TORUS_INDEX_MAX = 12;
+
+  function sanitizeTorusMode(m, n) {
+    var mm = wholeNumber(m, 0, TORUS_INDEX_MAX, 1), nn = wholeNumber(n, 0, TORUS_INDEX_MAX, 3);
+    if (mm === 0 && nn === 0) nn = 1;      // (0,0) is no wave at all
+    return { m: mm, n: nn };
+  }
+
+  /* Resonant frequency of m waves round the tube and n round the ring. */
+  function torusFrequency(m, n, ringCm) {
+    var R = clamp(Number(ringCm) || 20, 1, 1000) / 100;
+    var a = TORUS_ASPECT * R;
+    return SPEED_OF_SOUND / (2 * Math.PI) * Math.sqrt((m / a) * (m / a) + (n / R) * (n / R));
+  }
+
+  /* Every mode up to fMax, lowest first. */
+  function torusTable(ringCm, fMax, limit) {
+    var out = [];
+    for (var m = 0; m <= TORUS_INDEX_MAX; m++) {
+      for (var n = 0; n <= TORUS_INDEX_MAX; n++) {
+        if (m === 0 && n === 0) continue;
+        var f = torusFrequency(m, n, ringCm);
+        if (f <= fMax) out.push({ m: m, n: n, f: f });
+      }
+    }
+    out.sort(function (x, y) { return x.f - y.f; });
+    return limit ? out.slice(0, limit) : out;
+  }
+
+  function torusModeFor(freq, ringCm) {
+    var best = { m: 0, n: 1 }, bestDist = Infinity;
+    torusTable(ringCm, Infinity).forEach(function (t) {
+      var d = Math.abs(t.f - freq);
+      if (d < bestDist) { bestDist = d; best = { m: t.m, n: t.n }; }
+    });
+    return best;
+  }
+
+  /*
+   * The wave on the torus surface at one moment, sampled round the ring
+   * (ringSeg steps) and round the tube (tubeSeg steps), ring-major.
+   *   standing   cos(m theta) cos(n phi) cos(phase): a pattern that breathes in place
+   *   rotating   cos(m theta + n phi - phase): crests that travel, winding round
+   */
+  function torusValues(m, n, rotating, phase, ringSeg, tubeSeg) {
+    var out = new Float32Array(ringSeg * tubeSeg);
+    var cp = Math.cos(phase || 0);
+    for (var i = 0; i < ringSeg; i++) {
+      var phi = 2 * Math.PI * i / ringSeg;
+      for (var j = 0; j < tubeSeg; j++) {
+        var theta = 2 * Math.PI * j / tubeSeg;
+        out[i * tubeSeg + j] = rotating
+          ? Math.cos(m * theta + n * phi - (phase || 0))
+          : Math.cos(m * theta) * Math.cos(n * phi) * cp;
+      }
+    }
+    return out;
+  }
+
+  /* The still lines on the torus, unrolled flat: round the ring across, round the tube down. */
+  function torusMap(m, n, rotating, phase, size) {
+    var out = new Float32Array(size * size);
+    var sumSq = 0;
+    for (var j = 0; j < size; j++) {
+      var theta = 2 * Math.PI * (j + 0.5) / size;
+      for (var i = 0; i < size; i++) {
+        var phi = 2 * Math.PI * (i + 0.5) / size;
+        var v = Math.abs(rotating
+          ? Math.cos(m * theta + n * phi - (phase || 0))
+          : Math.cos(m * theta) * Math.cos(n * phi));
+        out[j * size + i] = v;
+        sumSq += v * v;
+      }
+    }
+    return scaleToRms(out, sumSq);
+  }
+
   /* ----------------------------------------------------- 2D companions */
 
   function scaleToRms(out, sumSq) {
@@ -266,6 +357,14 @@
     permutations: permutations,
     roomField: roomField,
     roomSlice: roomSlice,
+    TORUS_ASPECT: TORUS_ASPECT,
+    TORUS_INDEX_MAX: TORUS_INDEX_MAX,
+    sanitizeTorusMode: sanitizeTorusMode,
+    torusFrequency: torusFrequency,
+    torusTable: torusTable,
+    torusModeFor: torusModeFor,
+    torusValues: torusValues,
+    torusMap: torusMap,
     magnitudeMap: magnitudeMap,
     peakPhase: peakPhase
   };

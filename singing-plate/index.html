@@ -37,6 +37,7 @@
     <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
       <span class="lamp" aria-hidden="true"></span><span id="statusText">Standby</span>
     </div>
+    <button class="btn ghost" id="colorBtn" type="button" aria-pressed="false" title="Show each frequency as the colour of light it would be, raised by octaves">Colour</button>
     <button class="btn ghost" id="keysBtn" type="button" aria-haspopup="dialog">Keys</button>
     <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
   </div>
@@ -48,13 +49,14 @@
   <section class="panel freq" aria-labelledby="freqTitle">
     <div class="panel-head">
       <h2 id="freqTitle">Frequency</h2>
-      <span class="label">20 Hz to 20 kHz</span>
+      <span class="label">1 Hz to 20 kHz</span>
     </div>
 
     <div class="readout">
       <div class="readout-main">
         <output class="big" id="freqBig" for="freqInput" aria-label="Frequency in hertz">440.0</output>
         <span class="unit">Hz</span>
+        <span class="tone-swatch" id="toneSwatch" aria-hidden="true"></span>
       </div>
       <dl class="facts">
         <div><dt>Note</dt><dd><span id="noteName">A4</span> <span class="dim" id="noteCents">±0 ¢</span></dd></div>
@@ -67,7 +69,7 @@
     <div class="tuning">
       <div class="dial-wrap">
         <svg class="dial" id="dial" tabindex="0" role="slider" aria-label="Coarse frequency dial"
-             aria-valuemin="20" aria-valuemax="20000" aria-valuenow="440" aria-valuetext="440.0 hertz"></svg>
+             aria-valuemin="1" aria-valuemax="20000" aria-valuenow="440" aria-valuetext="440.0 hertz"></svg>
         <p class="label center">Coarse</p>
       </div>
 
@@ -78,7 +80,7 @@
             <button class="btn step" type="button" data-nudge="-10" aria-label="Down 10 hertz">−10</button>
             <button class="btn step" type="button" data-nudge="-1" aria-label="Down 1 hertz">−1</button>
             <button class="btn step" type="button" data-nudge="-0.1" aria-label="Down 0.1 hertz">−0.1</button>
-            <input class="input num" id="freqInput" type="number" inputmode="decimal" min="20" max="20000" step="0.1" value="440.0">
+            <input class="input num" id="freqInput" type="number" inputmode="decimal" min="1" max="20000" step="0.1" value="440.0">
             <button class="btn step" type="button" data-nudge="0.1" aria-label="Up 0.1 hertz">+0.1</button>
             <button class="btn step" type="button" data-nudge="1" aria-label="Up 1 hertz">+1</button>
             <button class="btn step" type="button" data-nudge="10" aria-label="Up 10 hertz">+10</button>
@@ -228,6 +230,20 @@
       <span>Low-frequency driver guard <span class="dim">(eases level below 60 Hz)</span></span>
     </label>
     <p class="notice" id="guardNote" hidden></p>
+    <button class="btn" id="pulseOffer" type="button" hidden>Hear this rate as a pulse</button>
+
+    <div class="field pulse">
+      <label class="check">
+        <input type="checkbox" id="pulseOn">
+        <span class="check-box" aria-hidden="true"></span>
+        <span>Pulse the tone <span class="dim">(swell and fade it at a slow rate)</span></span>
+      </label>
+      <div class="pulse-row">
+        <label class="label" for="pulseRate">Rate, Hz</label>
+        <input class="input" id="pulseRate" type="number" inputmode="decimal" min="0.1" max="40" step="0.1" value="7.8">
+      </div>
+      <p class="hint">A rate below 20 Hz is too slow to hear as a pitch, but you can hear it as a throb. Pulse an audible tone at 7.8 Hz and you are hearing 7.8 Hz.</p>
+    </div>
   </section>
 
   <!-- ================================================================ SWEEP -->
@@ -240,11 +256,11 @@
     <div class="form-grid three">
       <div class="field">
         <label class="label" for="swFrom">From, Hz</label>
-        <input class="input" id="swFrom" type="number" inputmode="decimal" min="20" max="20000" step="1" value="100">
+        <input class="input" id="swFrom" type="number" inputmode="decimal" min="1" max="20000" step="1" value="100">
       </div>
       <div class="field">
         <label class="label" for="swTo">To, Hz</label>
-        <input class="input" id="swTo" type="number" inputmode="decimal" min="20" max="20000" step="1" value="3000">
+        <input class="input" id="swTo" type="number" inputmode="decimal" min="1" max="20000" step="1" value="3000">
       </div>
       <div class="field">
         <label class="label" for="swRate">Rate, Hz/s</label>
@@ -267,6 +283,69 @@
       <button class="btn" id="swReset" type="button" disabled>Reset</button>
     </div>
     <p class="hint" id="swHint">Glides slowly so resonances have time to show. Press <kbd>S</kbd> the moment a pattern locks in: the sweep freezes and the tone holds.</p>
+  </section>
+
+  <!-- ================================================================= MATH -->
+  <section class="panel math" id="math" aria-labelledby="mathTitle">
+    <div class="panel-head">
+      <h2 id="mathTitle">Relationships</h2>
+      <span class="label">The arithmetic behind this frequency</span>
+    </div>
+
+    <div class="math-grid">
+      <div class="math-card">
+        <h3 class="label">As a rotation</h3>
+        <p class="formula">ω = 2π f</p>
+        <p class="value" id="mOmega">--</p>
+        <p class="hint">Anything that repeats can be drawn as a point going round a circle. One turn is 2π radians, so f turns a second is 2π f radians a second. That circle is why π is in every formula on this panel.</p>
+      </div>
+      <div class="math-card">
+        <h3 class="label">As light</h3>
+        <p class="formula">f × 2<sup id="mOctaves">40</sup></p>
+        <p class="value"><span class="tone-dot" id="mSwatch" aria-hidden="true"></span><span id="mLight">--</span></p>
+        <p class="hint">Keep doubling and the number becomes a colour. Visible light spans almost exactly one octave, so every note has one place in the spectrum and notes an octave apart share it. An analogy: sound and light are different kinds of wave. Turn on <b>Colour</b> to see it across the console.</p>
+      </div>
+      <div class="math-card">
+        <h3 class="label">As a radio wave</h3>
+        <p class="formula">λ = c / f</p>
+        <p class="value" id="mEm">--</p>
+        <p class="hint" id="mEmNote">--</p>
+      </div>
+      <div class="math-card">
+        <h3 class="label">As a tuned circuit</h3>
+        <p class="formula">f = 1 / (2π √(L C))</p>
+        <p class="value" id="mCoil">--</p>
+        <div class="pulse-row">
+          <label class="label" for="mCap">Capacitor, microfarads</label>
+          <input class="input" id="mCap" type="number" inputmode="decimal" min="0.000001" max="100000" step="any" value="0.1">
+        </div>
+        <p class="hint">A coil and a capacitor pass energy back and forth at one frequency, like a weight on a spring. Tesla's resonant transformer of 1891 is two such circuits tuned alike: energy crosses between them only when both ring at the same frequency.</p>
+      </div>
+    </div>
+
+    <h3 class="label math-head">Harmonics · whole-number multiples</h3>
+    <div class="chips" id="mHarmonics"></div>
+    <p class="hint">Every note that is not a pure sine contains these. Each is one more wave fitted into the same length, which is also why a plate has a ladder of resonances and not just one.</p>
+
+    <h3 class="label math-head">Intervals · small whole-number ratios</h3>
+    <div class="math-intervals">
+      <div>
+        <div class="chips" id="mIntervals"></div>
+        <p class="value" id="mIntervalText">--</p>
+        <div class="btn-row"><button class="btn" id="mIntervalTune" type="button">Tune to it</button></div>
+        <p class="hint">The figure is drawn by two tones at once: one moves the dot side to side, the other up and down. A ratio of small whole numbers closes into a still shape. That closure is what the ear hears as two notes agreeing.</p>
+      </div>
+      <canvas class="lissajous" id="mLissajous" width="360" height="360" role="img" aria-label="Lissajous figure for the chosen interval"></canvas>
+    </div>
+
+    <h3 class="label math-head">The Earth as a resonator</h3>
+    <p class="hint">Radio waves are trapped between the ground and the upper atmosphere, and resonate when a whole number of them fits round the planet. Light circles the Earth <b id="mCircuit">7.49</b> times a second, which is c / (2π R): π again, because the path is a circle. The textbook cavity rings at that figure times √(n(n+1)). The real one rings lower, because the upper atmosphere is a leaky wall. Tesla argued in 1899 that the Earth could be made to ring electrically; the resonance was worked out by Schumann in 1952 and measured in 1960.</p>
+    <div class="table-wrap">
+      <table class="line-table" id="mEarth">
+        <thead><tr><th scope="col">Mode</th><th scope="col">Textbook cavity</th><th scope="col">Measured</th><th scope="col"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </section>
 
   <!-- ================================================================= LIFE -->
@@ -426,6 +505,8 @@
 <script src="js/core/disc.js"></script>
 <script src="js/core/liquid.js"></script>
 <script src="js/core/life.js"></script>
+<script src="js/core/color.js"></script>
+<script src="js/core/relations.js"></script>
 <script src="js/audio/engine.js"></script>
 <script src="js/store/presets.js"></script>
 <script src="js/ui/dial.js"></script>

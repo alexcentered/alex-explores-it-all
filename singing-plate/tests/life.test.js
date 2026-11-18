@@ -14,8 +14,8 @@ test('life: every signal is complete, consistent and tunable on the console', ()
     assert.ok(life.EVIDENCE[s.evidence], `${s.id} has a known evidence level`);
     assert.ok(s.lo > 0 && s.lo < s.hi, `${s.id} band runs low to high`);
     // the band must overlap the console, and the tune point must be playable and inside the band
-    assert.ok(s.hi >= 20 && s.lo <= 20000, `${s.id} overlaps 20 Hz to 20 kHz`);
-    assert.ok(s.tune >= 20 && s.tune <= 20000, `${s.id} tune point is playable`);
+    assert.ok(s.hi >= 1 && s.lo <= 20000, `${s.id} overlaps 1 Hz to 20 kHz`);
+    assert.ok(s.tune >= 1 && s.tune <= 20000, `${s.id} tune point is playable`);
     assert.ok(s.tune >= s.lo && s.tune <= s.hi, `${s.id} tune point is inside its band`);
     assert.ok(s.note.endsWith('.'), `${s.id} note is a sentence`);
   }
@@ -37,19 +37,20 @@ test('life: uncertain claims are labelled as such', () => {
 test('life: activeAt finds everyone sharing a frequency', () => {
   const at = (f) => life.activeAt(f).map((s) => s.id);
   assert.deepEqual(at(20), ['whale-low', 'elephant', 'alligator']);
+  assert.deepEqual(at(14), ['whale-low', 'elephant']);
   assert.deepEqual(at(92), ['cat', 'midshipman', 'humpback', 'human', 'giraffe']);
   assert.ok(at(250).includes('honeybee') && at(250).includes('bullfrog'));
   assert.deepEqual(at(4900), ['songbird', 'cricket']);
   assert.deepEqual(at(4200), ['songbird']);
   assert.deepEqual(at(10000), ['dolphin']);
   assert.deepEqual(at(18000), []);
-  assert.deepEqual(at(1), []);
+  assert.deepEqual(at(5), []);
   assert.deepEqual(at(NaN), []);
 });
 
 test('life: playable band is clipped to the console', () => {
   const by = (id) => life.SIGNALS.find((s) => s.id === id);
-  assert.deepEqual(life.playable(by('elephant')), { lo: 20, hi: 35 });
+  assert.deepEqual(life.playable(by('elephant')), { lo: 12, hi: 35 });
   assert.deepEqual(life.playable(by('songbird')), { lo: 1000, hi: 8000 });
   assert.deepEqual(life.playable(by('dolphin')), { lo: 7000, hi: 15000 });
   assert.deepEqual(life.playable(by('bullfrog')), { lo: 200, hi: 400 });
@@ -95,8 +96,8 @@ test('life: no reported being is given a frequency that the accounts do not give
 
 test('life: accounts are worded as claims, and only the one with a published figure is tunable', () => {
   const tunable = life.ACCOUNTS.filter((a) => a.tune !== undefined);
-  assert.deepEqual(tunable.map((a) => a.id), ['trill']);
-  assert.ok(tunable[0].tune >= tunable[0].lo && tunable[0].tune <= tunable[0].hi && tunable[0].hi <= 20000);
+  assert.deepEqual(tunable.map((a) => a.id), ['trill', 'schumann']);
+  for (const t of tunable) assert.ok(t.tune >= t.lo && t.tune <= t.hi && t.tune >= 1 && t.hi <= 20000, t.id);
   const by = (id) => life.ACCOUNTS.find((a) => a.id === id);
   assert.match(by('sherman').frequency, /No frequency/);
   assert.match(by('sherman').note, /only source/);
@@ -106,7 +107,7 @@ test('life: accounts are worded as claims, and only the one with a published fig
   assert.equal(by('sherman').sims, undefined, 'Sherman gives no pitch, so there is nothing to simulate');
   assert.match(by('bashar').note, /not a signal to send/);
   assert.match(by('trill').note, /not a published measurement/);
-  assert.match(by('schumann').note, /speaker cannot produce it/);
+  assert.match(by('schumann').note, /far too low to hear/);
   assert.ok(life.EVIDENCE.claim);
 });
 
@@ -117,9 +118,9 @@ test('life: simulations land on the console and say how far they were shifted', 
     assert.ok(typeof sim.label === 'string' && sim.label.length > 2, id);
     assert.ok(Number.isInteger(sim.octaves) && sim.octaves !== 0, `${id} is shifted by whole octaves`);
     const hz = life.simulate(sim);
-    assert.ok(hz >= 20 && hz <= 20000, `${id}: ${hz} Hz must be playable`);
-    // the real frequency itself must be out of reach, or there would be nothing to simulate
-    assert.ok(sim.real < 20 || sim.real > 20000, `${id} is genuinely out of range`);
+    assert.ok(hz >= 20 && hz <= 20000, `${id}: ${hz} Hz must be audible`);
+    // the real frequency itself must be out of hearing, or there would be nothing to simulate
+    assert.ok(sim.real < 20 || sim.real > 20000, `${id} is genuinely out of hearing`);
     // an octave shift is exact: undo it and the real frequency comes back
     assert.ok(Math.abs(hz / Math.pow(2, sim.octaves) - sim.real) / sim.real < 1e-3, id);
   }
