@@ -11,7 +11,8 @@
 
   var SP = root.SP;
   var F = SP.freq, safety = SP.safety, chladni = SP.chladni, disc = SP.disc, forms = SP.forms, meshes = SP.mesh;
-  var SHAPES = ['plate', 'disc', 'sphere', 'room'];
+  var SHAPES = ['plate', 'disc', 'sphere', 'room', 'torus'];
+  var color = SP.color;
   var DISC_SEGS = 3;              // a disc has this many segments round per ring outward
   var CONSOLE_KEY = 'singing-plate:v1';
   var LAB_KEY = 'singing-plate:lab:v1';
@@ -21,8 +22,9 @@
   var RIDGE_HEIGHT = 0.4;         // sand lines are low ridges, not walls
 
   // Preview stays light enough to animate; export is a separate, finer build.
-  var PREVIEW = { plate: [64, 112, 176], disc: [24, 40, 64], sphere: [32, 56, 88], room: [40, 64, 88] };
-  var EXPORT = { plate: [160, 256, 384], disc: [64, 112, 176], sphere: [96, 160, 256], room: [48, 72, 96] };
+  // For the torus the figure is steps round the ring; the tube gets half as many.
+  var PREVIEW = { plate: [64, 112, 176], disc: [24, 40, 64], sphere: [32, 56, 88], room: [40, 64, 88], torus: [64, 96, 144] };
+  var EXPORT = { plate: [160, 256, 384], disc: [64, 112, 176], sphere: [96, 160, 256], room: [48, 72, 96], torus: [160, 256, 384] };
 
   function $(id) { return document.getElementById(id); }
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
@@ -43,6 +45,7 @@
     disc: { n: 3, s: 1 },
     sphere: { l: 5, m: 3, radiusMm: 1 },
     room: { n: [2, 1, 0], blend: true, sideCm: 34.3 },
+    torus: { m: 2, n: 5, rotating: true, ringCm: 20 },
     relief: 'wave',
     amp: 0.5,
     detail: 1,
@@ -52,7 +55,8 @@
       plate: { size: 80, base: 2, wall: 2 },
       disc: { size: 80, base: 2, wall: 2 },
       sphere: { size: 60, base: 6, wall: 2 },
-      room: { size: 60, base: 2, wall: 2.4 }
+      room: { size: 60, base: 2, wall: 2.4 },
+      torus: { size: 80, base: 3, wall: 2 }
     }
   };
 
@@ -84,6 +88,7 @@
     consoleSettings = readJson(CONSOLE_KEY);
     if (consoleSettings.plate) plateSetup = chladni.sanitizePlate(consoleSettings.plate);
     if (consoleSettings.theme === 'light') theme = 'light';
+    colourOn = consoleSettings.color === true;
     state.freq = F.sanitize(consoleSettings.freq, state.freq);
 
     var s = readJson(LAB_KEY);
@@ -100,6 +105,12 @@
       state.sphere.l = num(s.sphere.l, 5, forms.DEGREE_MIN, forms.DEGREE_MAX) | 0;
       state.sphere.m = num(s.sphere.m, 3, 0, state.sphere.l) | 0;
       state.sphere.radiusMm = num(s.sphere.radiusMm, 1, 0.2, 20);
+    }
+    if (s.torus) {
+      var tm = forms.sanitizeTorusMode(s.torus.m, s.torus.n);
+      state.torus.m = tm.m; state.torus.n = tm.n;
+      state.torus.rotating = s.torus.rotating !== false;
+      state.torus.ringCm = num(s.torus.ringCm, 20, 2, 500);
     }
     if (s.room) {
       state.room.n = forms.sanitizeRoomMode(s.room.n);
@@ -200,6 +211,15 @@
       var ring = forms.dropletFrequency(h.l, R);
       if (!byFreq) w.freq = ring;
       w.caption = 'Degree ' + h.l + ', order ' + h.m + ' · a ' + trim(R) + ' mm water drop rings at ' + ring.toFixed(0) + ' Hz';
+    } else if (state.shape === 'torus') {
+      var ringCm = state.torus.ringCm;
+      var tmode = byFreq ? forms.torusModeFor(state.freq, ringCm) : forms.sanitizeTorusMode(state.torus.m, state.torus.n);
+      w.numbers = [tmode.m, tmode.n];
+      w.rotating = state.torus.rotating;
+      var tf = forms.torusFrequency(tmode.m, tmode.n, ringCm);
+      if (!byFreq) w.freq = tf;
+      w.caption = (w.rotating ? 'Rotating wave' : 'Standing wave') + ' on a torus: ' + plural(tmode.m, 'wave') + ' round the tube, ' +
+        tmode.n + ' round the ring · a ' + trim(ringCm) + ' cm ring of air rings at ' + tf.toFixed(0) + ' Hz';
     } else {
       var side = state.room.sideCm;
       var n = byFreq ? forms.roomModeFor(state.freq, side) : forms.sanitizeRoomMode(state.room.n);
@@ -242,7 +262,16 @@
     if (wave.shape === 'sphere') {
       return { values: forms.sphereHarmonic(wave.numbers[0], wave.numbers[1], res, res * 2) };
     }
+    // A torus wave is cheap to compute, and a rotating one changes with every moment, so it is sampled when the mesh is built.
+    if (wave.shape === 'torus') return { m: wave.numbers[0], n: wave.numbers[1], rotating: wave.rotating };
     return { field: forms.roomField(wave.numbers, wave.blend, res) };
+  }
+
+  function buildTorusMesh(data, ringSeg, ph) {
+    var tubeSeg = Math.max(12, Math.round(ringSeg / 2));
+    var p = printSettings();
+    return meshes.buildTorus(forms.torusValues(data.m, data.n, data.rotating, ph, ringSeg, tubeSeg), ringSeg, tubeSeg,
+      { diameter: p.size, aspect: forms.TORUS_ASPECT, amplitude: state.amp * 0.5, cut: p.base });
   }
 
   /*
@@ -343,6 +372,7 @@
     if (wave.shape === 'plate') return meshes.buildPlate(plateHeights(data, ph), res, plateOptions());
     if (wave.shape === 'disc') return meshes.buildDisc(discHeights(data, ph, res), res, res * DISC_SEGS, discOptions());
     if (wave.shape === 'sphere') return meshes.buildSphere(data.values, res, res * 2, sphereOptions(ph));
+    if (wave.shape === 'torus') return buildTorusMesh(data, res, ph);
     var p = printSettings();
     var wall = forPrint ? p.wall : Math.max(p.wall, 2 * p.size / res);
     return meshes.buildRoom(data.field, res, { size: p.size, wall: wall, base: p.base });
@@ -350,7 +380,7 @@
 
   /* Does this form move? Node sheets and sand lines are exactly what stays still. */
   function canAnimate() {
-    return wave && !wave.empty && (wave.shape === 'sphere' || (isFlat(wave.shape) && state.relief === 'wave'));
+    return wave && !wave.empty && (wave.shape === 'sphere' || wave.shape === 'torus' || (isFlat(wave.shape) && state.relief === 'wave'));
   }
 
   function peakPhaseNow() {
@@ -383,7 +413,9 @@
       meshes.updateDisc(preview.mesh, discHeights(preview.data, phase, preview.res), preview.res, preview.res * DISC_SEGS, discOptions());
       viewer.updatePositions(preview.mesh.positions);
     } else {
-      var m = meshes.buildSphere(preview.data.values, preview.res, preview.res * 2, sphereOptions(phase));
+      var m = wave.shape === 'torus'
+        ? buildTorusMesh(preview.data, preview.res, phase)
+        : meshes.buildSphere(preview.data.values, preview.res, preview.res * 2, sphereOptions(phase));
       preview.mesh.positions.set(m.positions);
       viewer.updatePositions(preview.mesh.positions);
     }
@@ -406,6 +438,16 @@
       caption = 'Nodal lines on the round plate: rings from a centre drive, plus spokes when a mode has nodal diameters.';
     } else if (wave.shape === 'sphere') {
       map = forms.sphereMap(wave.numbers[0], wave.numbers[1], FLAT_SIZE);
+    } else if (wave.shape === 'torus') {
+      map = forms.torusMap(wave.numbers[0], wave.numbers[1], wave.rotating, phase, FLAT_SIZE);
+      caption = wave.rotating
+        ? 'The torus unrolled flat: round the ring across, round the tube down. A rotating wave is a set of slanted stripes, like the turns of a coil, and they slide as it turns.'
+        : 'The torus unrolled flat: round the ring across, round the tube down. A standing wave is a chequer of still lines.';
+      el.flatFrame.classList.toggle('round', false);
+      flat.setField(map, FLAT_SIZE);
+      flat.frame();
+      el.flatCaption.textContent = caption;
+      return;
       caption = 'The still lines on the ball, unrolled like a world map: once round the axis across, pole to pole down.';
     } else {
       map = forms.roomSlice(wave.numbers, wave.blend, FLAT_SIZE, state.slice);
@@ -423,7 +465,8 @@
     plate: 'The Chladni pattern of a square plate, lifted into relief.',
     disc: 'A round plate: rings from the centre drive, stars when it has nodal diameters.',
     sphere: 'Standing waves on a ball, the shapes a vibrating droplet takes.',
-    room: 'Standing waves inside a box, drawn as the surfaces where the air stays still.'
+    room: 'Standing waves inside a box, drawn as the surfaces where the air stays still.',
+    torus: 'Waves on a ring-shaped tube. Standing, they chequer it; rotating, their crests wind round it like the turns of a coil.'
   };
 
   function setChecked(name, value) {
@@ -444,7 +487,7 @@
     el.presetSelect.disabled = !byFreq || el.presetSelect.options.length < 2;
 
     // Mode numbers: what they are called, how many, and which are yours to set.
-    var labels = { plate: ['m', 'n', ''], disc: ['Diameters', 'Circles', ''], sphere: ['Degree', 'Order', ''], room: ['nx', 'ny', 'nz'] }[shape];
+    var labels = { plate: ['m', 'n', ''], disc: ['Diameters', 'Circles', ''], sphere: ['Degree', 'Order', ''], room: ['nx', 'ny', 'nz'], torus: ['Round tube', 'Round ring', ''] }[shape];
     el.modeALabel.textContent = labels[0];
     el.modeBLabel.textContent = labels[1];
     el.modeCLabel.textContent = labels[2];
@@ -459,6 +502,7 @@
     el.modeHint.textContent = !byFreq
       ? (shape === 'sphere' ? 'Degree sets how many ripples; order sets how many times they repeat round the axis.'
         : shape === 'disc' ? 'Diameters are straight still lines through the centre; circles are still rings.'
+        : shape === 'torus' ? 'How many whole waves fit round the tube, and how many round the ring.'
         : 'Whole numbers: how many half-waves fit along each direction.')
       : (shape === 'sphere' ? 'Degree follows the frequency. Order is yours: how many times the pattern repeats round the axis.'
         : shape === 'disc' ? 'Set by the frequency. A centre drive raises rings only; choose Mode numbers for the star shapes.'
@@ -471,6 +515,11 @@
       el.symBLabel.textContent = 'Antisymmetric';
       setChecked('symmetry', state.plate.sign < 0 ? 'b' : 'a');
       el.symmetryHint.textContent = 'Adds or subtracts the same wave turned a quarter turn. The two give different figures.';
+    } else if (shape === 'torus') {
+      el.symALabel.textContent = 'Rotating';
+      el.symBLabel.textContent = 'Standing';
+      setChecked('symmetry', state.torus.rotating ? 'a' : 'b');
+      el.symmetryHint.textContent = 'Two waves running opposite ways stand still as a chequer. One wave alone keeps moving, its crests winding round the ring: the rotating field at the heart of Tesla\'s motor.';
     } else if (shape === 'room') {
       el.symALabel.textContent = 'Blend axes';
       el.symBLabel.textContent = 'Single';
@@ -484,6 +533,11 @@
       el.physInput.min = 0.2; el.physInput.max = 20; el.physInput.step = 0.1;
       el.physInput.value = trim(state.sphere.radiusMm);
       el.physHint.textContent = 'Links frequency to shape: smaller drops ring higher.';
+    } else if (shape === 'torus') {
+      el.physLabel.textContent = 'Ring radius, cm';
+      el.physInput.min = 2; el.physInput.max = 500; el.physInput.step = 0.1;
+      el.physInput.value = trim(state.torus.ringCm);
+      el.physHint.textContent = 'Links frequency to shape: one wave round the ring is c / (2π R). The 2π is the ring being a circle.';
     } else if (shape === 'room') {
       el.physLabel.textContent = 'Cube side, cm';
       el.physInput.min = 5; el.physInput.max = 500; el.physInput.step = 0.1;
@@ -505,8 +559,8 @@
 
     // Print panel
     var p = printSettings();
-    el.pSizeLabel.textContent = { plate: 'Width, mm', disc: 'Diameter, mm', sphere: 'Diameter, mm', room: 'Side, mm' }[shape];
-    el.pBaseLabel.textContent = shape === 'sphere' ? 'Flat base, mm' : 'Base, mm';
+    el.pSizeLabel.textContent = { plate: 'Width, mm', disc: 'Diameter, mm', sphere: 'Diameter, mm', room: 'Side, mm', torus: 'Outer diameter, mm' }[shape];
+    el.pBaseLabel.textContent = shape === 'sphere' || shape === 'torus' ? 'Flat base, mm' : 'Base, mm';
     el.pWallField.hidden = shape !== 'room';
     el.pSize.value = trim(p.size);
     el.pBase.value = trim(p.base);
@@ -516,12 +570,136 @@
       plate: 'The base is the slab under the pattern. Relief adds ' + plateOptions().relief.toFixed(1) + ' mm on top, set by Amplitude.',
       disc: 'The base is the slab under the pattern. Relief adds ' + plateOptions().relief.toFixed(1) + ' mm on top, set by Amplitude.',
       sphere: 'Flat base trims this much off the bottom so the ball stands on the print bed. 0 leaves it round.',
-      room: 'Node sheets have no thickness of their own, so the wall gives them one. The base is a slab that ties loose sheets together.'
+      room: 'Node sheets have no thickness of their own, so the wall gives them one. The base is a slab that ties loose sheets together.',
+      torus: 'Flat base trims this much off the underside so the ring lies steady on the print bed. 0 leaves it round.'
     }[shape];
   }
 
   /* The parts of the display that follow from the resolved wave. */
+  /* ----------------------------------------------- predicted resonances */
+
+  var resTable = [], resKey = '';
+
+  /* Every resonance the model predicts for the current shape, lowest first. */
+  function resonanceTable() {
+    var shape = state.shape, out = [];
+    if (shape === 'plate') {
+      out = chladni.modeTable(plateC(), F.F_MIN, F.F_MAX).map(function (m) { return { numbers: [m.m, m.n], f: m.f, label: m.label }; });
+    } else if (shape === 'disc') {
+      var round = roundPlate();
+      for (var n = 0; n <= 6; n++) {
+        for (var s = n < 2 ? 1 : 0; s <= 4; s++) {
+          var dm = disc.findMode(round, n, s);
+          if (dm && dm.f <= F.F_MAX) out.push({ numbers: [n, s], f: dm.f, label: '(' + n + ',' + s + ')' });
+        }
+      }
+    } else if (shape === 'sphere') {
+      for (var l = forms.DEGREE_MIN; l <= forms.DEGREE_MAX; l++) {
+        var sf = forms.dropletFrequency(l, state.sphere.radiusMm);
+        if (sf <= F.F_MAX) out.push({ numbers: [l, Math.min(state.sphere.m, l)], f: sf, label: 'degree ' + l });
+      }
+    } else if (shape === 'room') {
+      for (var a = 1; a <= forms.ROOM_INDEX_MAX; a++) for (var b = 0; b <= a; b++) for (var c = 0; c <= b; c++) {
+        var rf = forms.roomFrequency([a, b, c], state.room.sideCm);
+        if (rf <= F.F_MAX) out.push({ numbers: [a, b, c], f: rf, label: '(' + a + ',' + b + ',' + c + ')' });
+      }
+    } else {
+      out = forms.torusTable(state.torus.ringCm, F.F_MAX).map(function (t) { return { numbers: [t.m, t.n], f: t.f, label: '(' + t.m + ',' + t.n + ')' }; });
+    }
+    out.sort(function (x, y) { return x.f - y.f; });
+    return out.slice(0, 48);
+  }
+
+  var RES_HINT = {
+    plate: 'Modes a driver at the centre can raise on your plate, as on the console. The pair of numbers counts half-waves each way.',
+    disc: 'Modes of the round plate: (nodal diameters, nodal circles). Those starting with 0 are the rings a centre drive raises.',
+    sphere: 'One resonance per degree. The order does not change the pitch on a perfect drop, only the pattern.',
+    room: 'Modes of the cube, lowest first: (nx, ny, nz) half-waves along each side.',
+    torus: 'Modes of the ring: (waves round the tube, waves round the ring).'
+  };
+
+  function sameNumbers(a, b) {
+    if (state.shape === 'sphere') return a[0] === b[0];
+    if (state.shape === 'room') return a.slice().sort().join() === b.slice().sort().join();
+    return a.join() === b.join();
+  }
+
+  function renderResonances() {
+    var key = state.shape + '|' + JSON.stringify([plateSetup, state.sphere.radiusMm, state.room.sideCm, state.torus.ringCm]);
+    if (key !== resKey) {
+      resKey = key;
+      resTable = resonanceTable();
+      var frag = document.createDocumentFragment(), ticks = document.createDocumentFragment();
+      resTable.forEach(function (r, i) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.dataset.index = i;
+        chip.append(r.label + ' ');
+        var hz = document.createElement('small');
+        hz.textContent = r.f >= 1000 ? (r.f / 1000).toFixed(2) + ' kHz' : r.f.toFixed(0) + ' Hz';
+        chip.appendChild(hz);
+        chip.setAttribute('aria-label', 'Resonance ' + r.label + ' at ' + r.f.toFixed(1) + ' hertz');
+        frag.appendChild(chip);
+        var tick = document.createElement('span');
+        tick.style.left = F.freqToDial(r.f) * 100 + '%';
+        ticks.appendChild(tick);
+      });
+      el.resList.replaceChildren(frag);
+      el.resTicks.replaceChildren(ticks);
+      el.resCount.textContent = '· ' + (resTable.length === 48 ? 'lowest 48' : resTable.length + ' in range');
+      el.resHint.textContent = RES_HINT[state.shape];
+    }
+    Array.prototype.forEach.call(el.resList.children, function (chip, i) {
+      if (sameNumbers(resTable[i].numbers, wave.numbers)) chip.setAttribute('aria-current', 'true');
+      else chip.removeAttribute('aria-current');
+    });
+    el.resHead.style.left = 'calc(' + F.freqToDial(Math.min(F.F_MAX, Math.max(F.F_MIN, wave.freq))) * 100 + '% - 1px)';
+  }
+
+  /* Go to a predicted resonance exactly, by its mode numbers. */
+  function chooseResonance(r) {
+    var n = r.numbers;
+    if (state.shape === 'plate') { state.plate.m = n[0]; state.plate.n = n[1]; state.plate.sign = 1; }
+    else if (state.shape === 'disc') state.disc = disc.sanitizeMode(n[0], n[1]);
+    else if (state.shape === 'sphere') state.sphere.l = n[0];
+    else if (state.shape === 'room') state.room.n = n.slice();
+    else { state.torus.m = n[0]; state.torus.n = n[1]; }
+    state.source = 'mode';
+    syncControls();
+    changed(false);
+  }
+
+  /* ------------------------------------------------------------ colour */
+
+  var colourOn = false;
+
+  /* With Colour on, the form and its 2D pattern take the colour of the frequency. */
+  function renderColour() {
+    document.documentElement.dataset.color = colourOn ? 'on' : 'off';
+    el.colorBtn.setAttribute('aria-pressed', colourOn ? 'true' : 'false');
+    var t = colourOn && wave ? color.tone(wave.freq) : null;
+    if (t) {
+      document.documentElement.style.setProperty('--tone', t.hex);
+      viewer.setTint(t.hex);
+      flat.setInk(t.rgb);
+    } else {
+      document.documentElement.style.removeProperty('--tone');
+      viewer.setTint(null);
+      flat.setInk(themeInk());
+    }
+    flat.frame();
+  }
+
+  function themeInk() {
+    var m = /^#([0-9a-f]{6})$/i.exec(getComputedStyle(document.documentElement).getPropertyValue('--fg').trim());
+    var v = m ? parseInt(m[1], 16) : 0xf0f0f0;
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+
   function renderReadouts() {
+    renderResonances();
+    renderColour();
     var byFreq = state.source === 'freq';
     el.formCaption.textContent = wave.caption;
 
@@ -529,7 +707,7 @@
     el.labFreqRange.value = Math.round(F.freqToDial(clamp(wave.freq, F.F_MIN, F.F_MAX)) * 1000);
     el.labNote.textContent = wave.audible ? F.noteInfo(wave.freq).label + ' ' + F.formatCents(F.noteInfo(wave.freq).cents) : '';
     el.freqHint.hidden = byFreq || wave.audible;
-    el.freqHint.textContent = 'Outside the 20 Hz to 5 kHz the console can play.';
+    el.freqHint.textContent = 'Outside the 1 Hz to 20 kHz the console can play.';
 
     var n = wave.numbers;
     if (document.activeElement !== el.modeA) el.modeA.value = n[0];
@@ -736,11 +914,8 @@
     var css = getComputedStyle(document.documentElement);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', css.getPropertyValue('--bg').trim());
-    var m = /^#([0-9a-f]{6})$/i.exec(css.getPropertyValue('--fg').trim());
-    var n = m ? parseInt(m[1], 16) : 0xf0f0f0;
-    flat.setInk([(n >> 16) & 255, (n >> 8) & 255, n & 255]);
-    flat.frame();
     viewer.setTheme(theme);
+    if (wave) renderColour(); else { flat.setInk(themeInk()); flat.frame(); }
   }
 
   function saveTheme() {
@@ -777,6 +952,7 @@
       'modeCField', 'modeHint', 'symmetryField', 'symALabel', 'symBLabel', 'symmetryHint', 'physField',
       'physLabel', 'physInput', 'physHint', 'reliefField', 'reliefHint', 'ampField', 'amp', 'ampOut',
       'hearBtn', 'labVolume', 'labVolumeOut', 'stage', 'stageMsg', 'formCaption', 'animBtn', 'peakBtn',
+      'colorBtn', 'resList', 'resTicks', 'resHead', 'resCount', 'resHint',
       'viewReset', 'animHint', 'flat', 'flatFrame', 'flatCaption', 'sliceField', 'slice', 'sliceOut', 'pSize',
       'pSizeLabel', 'pBase', 'pBaseLabel', 'pWall', 'pWallField', 'printHint', 'pDetail', 'buildBtn',
       'stlBtn', 'checks', 'printFacts', 'factSize', 'factVolume', 'factTris', 'factFile', 'printMsg',
@@ -812,6 +988,7 @@
         if (state.shape === 'disc') state.disc = disc.sanitizeMode(wave.numbers[0], wave.numbers[1]);
         if (state.shape === 'sphere') { state.sphere.l = wave.numbers[0]; state.sphere.m = wave.numbers[1]; }
         if (state.shape === 'room') state.room.n = wave.numbers.slice();
+        if (state.shape === 'torus') { state.torus.m = wave.numbers[0]; state.torus.n = wave.numbers[1]; }
       } else if (v === 'freq' && wave && wave.audible) {
         state.freq = F.sanitize(wave.freq, state.freq);
       }
@@ -823,6 +1000,7 @@
     onRadio('detail', function (v) { state.detail = Number(v) | 0; changed(false); });
     onRadio('symmetry', function (v) {
       if (state.shape === 'plate') state.plate.sign = v === 'b' ? -1 : 1;
+      else if (state.shape === 'torus') state.torus.rotating = v === 'a';
       else state.room.blend = v === 'a';
       changed(false);
     });
@@ -843,6 +1021,9 @@
       } else if (state.shape === 'sphere') {
         if (state.source === 'mode') state.sphere.l = num(a, state.sphere.l, forms.DEGREE_MIN, forms.DEGREE_MAX) | 0;
         state.sphere.m = num(b, state.sphere.m, 0, forms.DEGREE_MAX) | 0;
+      } else if (state.shape === 'torus') {
+        var tm = forms.sanitizeTorusMode(num(a, state.torus.m, 0, 12), num(b, state.torus.n, 0, 12));
+        state.torus.m = tm.m; state.torus.n = tm.n;
       } else {
         state.room.n = forms.sanitizeRoomMode([num(a, 0, 0, 12), num(b, 0, 0, 12), num(c, 0, 0, 12)]);
       }
@@ -853,6 +1034,7 @@
     el.physInput.addEventListener('change', function () {
       if (state.shape === 'sphere') state.sphere.radiusMm = num(el.physInput.value, state.sphere.radiusMm, 0.2, 20);
       else if (state.shape === 'room') state.room.sideCm = num(el.physInput.value, state.room.sideCm, 5, 500);
+      else if (state.shape === 'torus') state.torus.ringCm = num(el.physInput.value, state.torus.ringCm, 2, 500);
       syncControls();
       changed(false);
     });
@@ -881,6 +1063,20 @@
       changed(false);
     });
     el.viewReset.addEventListener('click', function () { viewer.resetView(); });
+    el.resList.addEventListener('click', function (e) {
+      var chip = e.target.closest('.chip');
+      if (chip) chooseResonance(resTable[Number(chip.dataset.index)]);
+    });
+    el.colorBtn.addEventListener('click', function () {
+      colourOn = !colourOn;
+      renderColour();
+      // Colour is one setting shared with the console.
+      try {
+        var s = readJson(CONSOLE_KEY);
+        s.color = colourOn;
+        localStorage.setItem(CONSOLE_KEY, JSON.stringify(s));
+      } catch (e) { /* not fatal */ }
+    });
 
     /* print */
     function readPrint() {
