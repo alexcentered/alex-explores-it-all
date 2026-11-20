@@ -1,0 +1,108 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Deploy Preview to Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for required secrets
+        id: check-secrets
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Cloudflare secrets not configured. Skipping preview deployment."
+            echo "To enable previews, add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to repository secrets."
+          else
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Deploy the site to Cloudflare Pages
+          # The branch name will create a unique preview URL
+          OUTPUT=$(wrangler pages deploy . \
+            --project-name=alex-explores-it-all-preview \
+            --branch="${{ github.head_ref }}" \
+            --commit-hash="${{ github.event.pull_request.head.sha }}" 2>&1)
+          
+          echo "$OUTPUT"
+          
+          # Extract the preview URL from the output
+          PREVIEW_URL=$(echo "$OUTPUT" | grep -oP 'https://[^\s]+\.pages\.dev' | head -1)
+          
+          if [ -z "$PREVIEW_URL" ]; then
+            echo "Warning: Could not extract preview URL from deployment output"
+            PREVIEW_URL="Deployment completed, but URL extraction failed. Check Cloudflare Pages dashboard."
+          fi
+          
+          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+
+      - name: Find existing preview comment
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        id: find-comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Preview deployment'
+
+      - name: Create or update preview comment
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ## 🚀 Preview deployment
+            
+            Your changes have been deployed to Cloudflare Pages!
+            
+            **Preview URL:** ${{ steps.deploy.outputs.preview_url }}
+            
+            ---
+            
+            <sub>Built from commit ${{ github.event.pull_request.head.sha }}</sub>
+
+      - name: Post skip notice
+        if: steps.check-secrets.outputs.has_secrets == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## ⚠️ Preview deployment skipped
+            
+            Preview deployments are not configured for this repository.
+            
+            To enable Cloudflare Pages previews, add the following secrets to your repository:
+            - `CLOUDFLARE_API_TOKEN` — API token with Pages:Edit permission
+            - `CLOUDFLARE_ACCOUNT_ID` — Your Cloudflare account ID
+            
+            See [PREVIEWS.md](https://github.com/${{ github.repository }}/blob/main/PREVIEWS.md) for setup instructions.
