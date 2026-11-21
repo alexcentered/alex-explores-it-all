@@ -204,3 +204,115 @@ test('fields: ring time', () => {
   near(fields.ringTime(440, 45), 45 / (Math.PI * 440));
   assert.ok(fields.ringTime(440, 450) > fields.ringTime(440, 45));     // a sharper resonance rings longer
 });
+
+test('fields: a struck resonator as sound', () => {
+  const rate = 48000;
+  const s = fields.ringSamples(440, 100, rate, 6);
+  const tau = fields.ringTime(440, 100);
+  near(s.length / rate, 6.9 * tau, 1e-3);                      // long enough to fade by 60 dB
+  near(s[0], 0); near(s[s.length - 1], 0);                      // starts and ends on silence: no click
+  let peak = 0, late = 0;
+  for (let i = 0; i < s.length; i++) {
+    peak = Math.max(peak, Math.abs(s[i]));
+    if (i > rate * 3 * tau && i < rate * 3.2 * tau) late = Math.max(late, Math.abs(s[i]));
+  }
+  assert.ok(peak > 0.95 && peak <= 1, `peak ${peak}`);
+  near(late, Math.exp(-3), 0.005);                             // after three time constants, e^-3 is left
+  // its pitch: count the upward zero crossings in the first tenth of a second
+  let ups = 0;
+  for (let i = 1; i < rate * 0.1; i++) if (s[i - 1] <= 0 && s[i] > 0) ups++;
+  near(ups, 44, 1);
+  // a long ring is cut at the limit, a short one is still long enough to hear
+  assert.equal(fields.ringSamples(20, 1000, rate, 6).length, 6 * rate);
+  assert.equal(fields.ringSamples(10000, 1, rate, 6).length, Math.round(0.06 * rate));
+});
+
+/* --------------------------------------------------- two tuned circuits */
+
+test('fields: two coupled circuits have two natural frequencies', () => {
+  const p = fields.coupledPeaks(1000, 0.1);
+  near(p.lower, 1000 / Math.sqrt(1.1), 1e-9);
+  near(p.upper, 1000 / Math.sqrt(0.9), 1e-9);
+  assert.deepEqual(fields.coupledPeaks(1000, 0), { lower: 1000, upper: 1000 });   // uncoupled: one frequency
+  assert.ok(isFinite(fields.coupledPeaks(1000, 5).upper));                          // nonsense coupling is clamped
+  near(fields.criticalCoupling(50), 0.02);
+});
+
+test('fields: the driven pair: one peak below critical coupling, two above', () => {
+  const Q = 50, f0 = 1000, kc = fields.criticalCoupling(Q);
+  const sec = (f, k) => fields.coupledResponse(f, f0, Q, k).secondary;
+  // with no coupling the first circuit is the lone resonator and nothing reaches the second
+  near(fields.coupledResponse(f0, f0, Q, 0).primary, Q, 1e-9);
+  near(fields.coupledResponse(f0, f0, Q, 0).secondary, 0);
+  near(fields.coupledResponse(930, f0, Q, 0).primary, fields.response(930, f0, Q).gain, 1e-9);
+  // at critical coupling and resonance the second circuit carries half of that, the most it ever can there
+  near(sec(f0, kc), Q / 2, 1e-9);
+  assert.ok(sec(f0, kc / 2) < Q / 2 && sec(f0, kc * 2) < Q / 2);
+  // under-coupled: the middle is the top
+  assert.ok(sec(f0, kc / 2) > sec(f0 * 1.004, kc / 2) && sec(f0, kc / 2) > sec(f0 * 0.996, kc / 2));
+  // over-coupled: the middle is a dip between two peaks, which sit near the two natural frequencies
+  const k = 5 * kc, peaks = fields.coupledPeaks(f0, k);
+  assert.ok(sec(f0, k) < sec(peaks.lower, k) && sec(f0, k) < sec(peaks.upper, k));
+  let best = 0, at = 0;
+  for (let f = 900; f < 1000; f += 0.25) if (sec(f, k) > best) { best = sec(f, k); at = f; }
+  near(at, peaks.lower, 1.5);
+  near(best, Q / 2, Q * 0.03);
+});
+
+test('fields: strike the first circuit and the energy crosses to the second and back', () => {
+  const lossless = 1e9, k = 0.1;
+  const start = fields.coupledRing(lossless, k, 0);
+  near(start.primary, 1); near(start.secondary, 0);
+  const cross = fields.transferCycles(k);
+  near(cross, 1 / (2 * (1 / Math.sqrt(0.9) - 1 / Math.sqrt(1.1))), 1e-12);
+  near(cross, 1 / (2 * k), 0.05);                              // roughly 1 / 2k cycles
+  assert.equal(fields.transferCycles(0), Infinity);
+  // at the crossing time the first circuit is nearly still and the second swings fully; later it all comes back
+  const there = fields.coupledEnvelope(lossless, k, cross), back = fields.coupledEnvelope(lossless, k, 2 * cross);
+  near(there.primary, 0, 1e-6); near(there.secondary, 1, 1e-6);
+  near(back.primary, 1, 1e-6); near(back.secondary, 0, 1e-6);
+  // the envelope really does bound the oscillation, and touches it
+  let over = 0, reach = 0;
+  for (let t = 0; t < 2 * cross; t += 0.003) {
+    const r = fields.coupledRing(lossless, k, t), e = fields.coupledEnvelope(lossless, k, t);
+    over = Math.max(over, Math.abs(r.secondary) - e.secondary, Math.abs(r.primary) - e.primary);
+    if (Math.abs(t - cross) < 0.6) reach = Math.max(reach, Math.abs(r.secondary));
+  }
+  assert.ok(over < 0.03, `oscillation exceeds its envelope by ${over}`);
+  assert.ok(reach > 0.97, `secondary reaches ${reach}`);
+});
+
+test('fields: the closed form satisfies the circuit equations, losses included', () => {
+  // L q1'' + M q2'' + R q1' + q1 / C = 0 and the same with 1 and 2 exchanged, in units where L = C = 1
+  const Q = 12, k = 0.3, h = 1e-4;
+  const at = (t) => fields.coupledRing(Q, k, t / (2 * Math.PI));          // t in radians of the natural frequency
+  for (const t of [0.5, 2.2, 7.9, 15.3]) {
+    const a = at(t - h), b = at(t), c = at(t + h);
+    const d1 = (c.primary - a.primary) / (2 * h), d2 = (c.secondary - a.secondary) / (2 * h);
+    const dd1 = (c.primary - 2 * b.primary + a.primary) / (h * h), dd2 = (c.secondary - 2 * b.secondary + a.secondary) / (h * h);
+    near(dd1 + k * dd2 + d1 / Q + b.primary, 0, 2e-6);
+    near(dd2 + k * dd1 + d2 / Q + b.secondary, 0, 2e-6);
+  }
+  // it starts at rest: charged, no current
+  near((at(h).primary - at(0).primary) / h, 0, 1e-3);
+  // with loss, less arrives, and a lossier pair passes less
+  const cross = fields.transferCycles(k);
+  const good = fields.coupledEnvelope(200, k, cross).secondary, poor = fields.coupledEnvelope(5, k, cross).secondary;
+  assert.ok(good > 0.97 && poor < good && poor > 0.3, `${good} ${poor}`);
+});
+
+test('fields: the second circuit as sound', () => {
+  const rate = 48000;
+  const s = fields.coupledSamples(440, 200, 0.02, rate, 6);
+  near(s[0], 0); near(s[s.length - 1], 0);
+  let peak = 0;
+  for (let i = 0; i < s.length; i++) peak = Math.max(peak, Math.abs(s[i]));
+  assert.ok(peak > 0.5 && peak <= 1, `peak ${peak}`);
+  assert.ok(s.length <= 6 * rate && s.length > 0.5 * rate);
+  // it swells from nothing: quiet at first, loudest near the crossing time
+  const cross = Math.round(fields.transferCycles(0.02) / 440 * rate);
+  let early = 0, mid = 0;
+  for (let i = 0; i < cross * 0.1; i++) early = Math.max(early, Math.abs(s[i]));
+  for (let i = Math.round(cross * 0.8); i < cross * 1.2; i++) mid = Math.max(mid, Math.abs(s[i]));
+  assert.ok(early < 0.2 && mid > 0.5, `${early} ${mid}`);
+});

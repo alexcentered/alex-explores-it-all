@@ -4,7 +4,7 @@ Four tools in one app, built around a desktop Chladni plate rig:
 
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
-- **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, and the resonance curve.
+- **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.
 - **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
@@ -319,7 +319,7 @@ The forms are mathematical models of standing waves, not recordings. They show t
 
 ## Fields
 
-`fields.html` shows three pieces of textbook physics. It makes no sound.
+`fields.html` shows four pieces of textbook physics. The only sound it makes is the **Strike** buttons, described below.
 
 ### Field lines
 
@@ -351,9 +351,22 @@ How strongly a resonator responds when driven near its natural frequency, and ho
 
 The natural frequency starts at whatever the console is tuned to and follows it until you type one here. Each sand pattern on the plate is one of these peaks; the plate simulator adds many together.
 
+**Strike** plays the resonator struck once and left to ring: a sine at its natural frequency, fading at the rate Q sets. Q 30 at 440 Hz is a dull tick; Q 1,000 is a note that hangs for a couple of seconds. It goes through the same safety chain as the console (capped gain law, hard limiter, driver guard below 60 Hz) and is never longer than six seconds. **Esc** stops it.
+
+### Two tuned circuits
+
+Two copies of that resonator, with the same natural frequency and Q, whose coils share a fraction **k** of their magnetic field. This is the arrangement inside a Tesla coil, where a primary circuit feeds a secondary tuned to the same frequency.
+
+- **Two natural frequencies.** Together the pair rings at natural frequency ÷ √(1 + k) and natural frequency ÷ √(1 − k). The stronger the coupling, the further apart they are.
+- **Driven.** The upper plot shows the second circuit's response when the first is driven. Below **critical coupling**, k = 1 ÷ Q, there is one peak. Above it the peak splits in two. At critical coupling and resonance the second circuit reaches half of what one circuit alone would.
+- **Struck.** The lower plot shows the size of the swing in each circuit after the first is charged and let go. The energy crosses to the second and comes back, in about 1 ÷ 2k cycles each way, fading as it goes. With loose coupling it fades before much has crossed.
+- **Strike the first** plays the second circuit's voltage. With a high Q and loose coupling it swells from nothing and fades as the energy arrives and leaves.
+
+The struck response is a closed form, not a simulation: the pair separates exactly into two fading sines. The unit tests check that it satisfies the two circuit equations, losses included.
+
 ### What it leaves out
 
-The models are idealised: a perfectly thin ring, a coil with no gaps between turns, a resonator with one natural frequency. Claims of torus-shaped energy fields round the body, or of free energy from a torus, are not supported by measurement and are not modelled.
+The models are idealised: a perfectly thin ring, a coil with no gaps between turns, a resonator with one natural frequency, two circuits that match exactly. A real Tesla coil also has a spark gap that switches the primary out once the energy has crossed, and a secondary that behaves partly as a quarter-wave line; neither is modelled. Claims of torus-shaped energy fields round the body, or of free energy from a torus, are not supported by measurement and are not modelled.
 
 ## Layout
 
@@ -376,11 +389,13 @@ js/core/            pure logic, no browser APIs: unit tested
   color.js            frequency to colour, by octaves up to light
   relations.js        harmonics, intervals, radio, the tuned circuit, the Earth
   chance.js           the statistics behind the line test
-  fields.js           ring and coil fields, field lines, rotating field, resonance
+  fields.js           ring and coil fields, field lines, rotating field, resonance,
+                      coupled circuits
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
 js/audio/duo.js     two tones a hair apart, for the line test
+js/audio/strike.js  plays one prepared burst, for the fields page
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
 js/ui/              app.js wires the console, lab.js the lab, fields.js the fields page,
                     line.js the line test; dial, plate view, 3D viewer and field view

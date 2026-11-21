@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Singing Plate | Fields</title>
-<meta name="description" content="Magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, and the resonance curve.">
+<meta name="description" content="Magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#060607">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -157,6 +157,15 @@
             <button class="btn step" id="edgeHigh" type="button">Upper edge</button>
           </div>
         </div>
+        <div class="field">
+          <div class="field-head">
+            <label class="label" for="volume">Sound volume</label>
+            <output class="label" id="volumeOut" for="volume">25%</output>
+          </div>
+          <input class="range" id="volume" type="range" min="0" max="100" step="1" value="25">
+          <button class="btn primary" id="strikeBtn" type="button">Strike</button>
+          <p class="hint" id="strikeHint">Hear it struck once and left to ring. A higher Q rings longer.</p>
+        </div>
       </div>
 
       <div class="res-plots">
@@ -179,6 +188,55 @@
     </dl>
   </section>
 
+  <!-- ================================================== TWO TUNED CIRCUITS -->
+  <section class="panel fields-pair" aria-labelledby="pairTitle">
+    <div class="panel-head">
+      <h2 id="pairTitle">Two tuned circuits</h2>
+      <span class="label" id="pairState"></span>
+    </div>
+
+    <div class="res-body">
+      <div class="res-controls">
+        <p class="hint">Two copies of the resonator above, with the same natural frequency and Q, placed so their coils share some magnetic field. This is how a Tesla coil's primary feeds its secondary.</p>
+        <div class="field">
+          <div class="field-head">
+            <label class="label" for="coupling">Coupling, k</label>
+            <output class="label" id="couplingOut" for="coupling"></output>
+          </div>
+          <input class="range" id="coupling" type="range" min="0" max="300" step="1" value="212">
+          <div class="btn-row tight">
+            <button class="btn step" id="looseBtn" type="button">Loose</button>
+            <button class="btn step" id="criticalBtn" type="button">Critical</button>
+            <button class="btn step" id="tightBtn" type="button">Tight</button>
+          </div>
+          <p class="hint">k is the share of the magnetic field the two coils have in common. Moving them apart lowers it.</p>
+        </div>
+        <div class="field">
+          <button class="btn primary" id="pairStrikeBtn" type="button">Strike the first</button>
+          <p class="hint" id="pairStrikeHint">Hear the second circuit after the first is struck. With loose coupling and a high Q it swells and fades as the energy passes across and back.</p>
+        </div>
+      </div>
+
+      <div class="res-plots">
+        <div class="turn-screen">
+          <canvas id="pairCanvas" role="img" aria-label="Response of the second circuit against drive frequency. One peak when loosely coupled, two when tightly coupled."></canvas>
+        </div>
+        <div class="turn-screen strip tall">
+          <canvas id="swapCanvas" role="img" aria-label="The size of the swing in each circuit over time after the first is struck."></canvas>
+        </div>
+        <p class="hint">Top: the second circuit (solid) and the first (thin) when the first is driven, from half the natural frequency to twice it; dashed is one circuit alone. Bottom: strike the first circuit and let go. Dashed is the size of its swing, solid the second circuit's. The dotted line marks the first full crossing.</p>
+      </div>
+    </div>
+
+    <dl class="facts">
+      <div><dt>Lower peak</dt><dd id="pairLow">--</dd></div>
+      <div><dt>Upper peak</dt><dd id="pairHigh">--</dd></div>
+      <div><dt>Critical coupling</dt><dd id="pairCrit">--</dd></div>
+      <div><dt>Energy crosses in</dt><dd id="pairCross">--</dd></div>
+      <div><dt>Swing that arrives</dt><dd id="pairArrives">--</dd></div>
+    </dl>
+  </section>
+
   <!-- =============================================================== BRIEF -->
   <section class="panel fields-brief" aria-labelledby="briefTitle">
     <div class="panel-head"><h2 id="briefTitle">What you are looking at</h2></div>
@@ -192,8 +250,10 @@
       <p>One coil carrying alternating current makes a field that grows, shrinks and reverses along a single line. Two or three coils set at angles, with currents that peak one after another, add up to a field of steady strength that turns. A piece of metal inside is dragged round with it, with no brushes or sliding contacts. Nikola Tesla presented this to the American Institute of Electrical Engineers in May 1888, and the induction motors built on it still drive most of industry.</p>
       <h3 class="label">Resonance</h3>
       <p>Anything that can ring has a natural frequency. Push it at that frequency and each push adds to the last, so the motion builds until losses carry energy away as fast as the pushes supply it. Q is the number that says how far it builds: at resonance the response is Q times what the same push would produce slowly. A high Q also means a narrow peak and a long ring after the push stops. Each sand pattern on the plate is one of these peaks; the plate simulator on the Console adds many of them together.</p>
+      <h3 class="label">Two tuned circuits</h3>
+      <p>Put two matched resonators where their coils share some magnetic field and they stop behaving as two. Strike one and its energy passes to the other, then back, like two pendulums hung from the same string. Driven steadily, the pair has two peaks instead of one once the coupling passes 1 ÷ Q. A Tesla coil works this way: a capacitor discharges into a few turns of heavy wire, and that circuit hands its energy to a tall secondary coil tuned to the same frequency. If the two are not in tune, little crosses. Wireless chargers use the same idea at short range. Tesla's Wardenclyffe tower, begun in 1901 to send power across the globe, was never finished; coupling falls off quickly with distance.</p>
       <h3 class="label">What is not here</h3>
-      <p>These are textbook models: a perfectly thin ring, an ideal coil with no gaps between turns, a resonator with one natural frequency. They show measured physics. Drawings of torus-shaped energy fields round the human body, or of free energy drawn from a torus, are not supported by measurement and are not modelled here.</p>
+      <p>These are textbook models: a perfectly thin ring, an ideal coil with no gaps between turns, a resonator with one natural frequency, two circuits that match exactly. A real Tesla coil also has a spark gap and a secondary that acts partly as a quarter-wave line; neither is modelled. They show measured physics. Drawings of torus-shaped energy fields round the human body, or of free energy drawn from a torus, are not supported by measurement and are not modelled here.</p>
     </div>
   </section>
 </main>
@@ -201,7 +261,9 @@
 <footer class="foot label">Operation Singing Plate · fields · textbook models, idealised</footer>
 
 <script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
 <script src="js/core/fields.js"></script>
+<script src="js/audio/strike.js"></script>
 <script src="vendor/three.bundle.js"></script>
 <script src="js/ui/viewer.js"></script>
 <script src="js/ui/fieldview.js"></script>
