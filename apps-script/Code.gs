@@ -90,7 +90,10 @@ function getOrCreateSheet() {
  * Check if an email already exists in the sheet
  */
 function isDuplicate(sheet, email) {
-  const emailColumn = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+  
+  const emailColumn = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
   const normalizedEmail = email.toLowerCase().trim();
   
   for (let i = 0; i < emailColumn.length; i++) {
