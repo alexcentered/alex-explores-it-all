@@ -11,7 +11,7 @@
 
   var SP = root.SP = root.SP || {};
   var THREE = root.THREE;
-  var FIT = 2.75;              // the model's corner-to-corner size, in scene units
+  var FIT = 2.5;               // the model's corner-to-corner size, in scene units
 
   function geometry(mesh) {
     var g = new THREE.BufferGeometry();
@@ -36,6 +36,7 @@
     });
     this.groundMaterial = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
     this.edgeMaterial = new THREE.LineBasicMaterial({ color: 0x6e6e6e });
+    this.guideMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
     this.sheetMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide });
   }
 
@@ -59,6 +60,11 @@
       var e = new THREE.BufferGeometry();
       e.setAttribute('position', new THREE.BufferAttribute(model.edges, 3));
       this.group.add(new THREE.LineSegments(e, this.edgeMaterial));
+    }
+    if (model.guides && model.guides.length) {                 // cords: the design, drawn before the stone
+      var c = new THREE.BufferGeometry();
+      c.setAttribute('position', new THREE.BufferAttribute(model.guides, 3));
+      this.group.add(new THREE.LineSegments(c, this.guideMaterial));
     }
     var dx = model.max[0] - model.min[0], dy = model.max[1] - model.min[1], dz = model.max[2] - model.min[2];
     var s = FIT / (Math.sqrt(dx * dx + dy * dy + dz * dz) || 1);
@@ -109,6 +115,7 @@
     this.ghostMaterial.color.set(this.light ? 0x000000 : 0xffffff);
     this.ghostMaterial.opacity = this.light ? 0.05 : 0.07;
     this.edgeMaterial.color.set(this.light ? 0x9a9a9a : 0x6e6e6e);
+    this.guideMaterial.color.set(this.light ? 0x000000 : 0xffffff);
     this.paintSheet();
   };
 

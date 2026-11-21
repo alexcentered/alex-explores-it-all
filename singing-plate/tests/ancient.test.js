@@ -177,8 +177,8 @@ test('ancient: the models are the sizes the records give', () => {
   // a structure without a close-up gives the same model either way
   assert.equal(ancient.model('parthenon', true).solid.positions.length, p.solid.positions.length);
   assert.deepEqual(ancient.STRUCTURES.filter((s) => s.closeUp).map((s) => s.id), ['newgrange']);
-  // the Osireion: pillars 4 m, beams above
-  near(ancient.model('osireion').max[2], 5.6, 1e-4);
+  // the Osireion: pillars 4 m, beams to 5.6 m, and the lost roof drawn faintly above
+  near(ancient.model('osireion').max[2], 6.2, 1e-4);
 });
 
 test('ancient: the King\'s Chamber is the 3-4-5 room the record says it is', () => {
@@ -219,4 +219,86 @@ test('ancient: ratios are reported honestly', () => {
   assert.ok(ancient.analyse(ancient.find('osireion')).every((r) => !r.whole));
   // only the King's Chamber is a simple closed box, so only it gets computed room modes
   assert.deepEqual(ancient.STRUCTURES.filter((s) => s.room).map((s) => s.id), ['kings-chamber']);
+});
+
+/* -------------------------------------------------------- build sequence */
+
+const triangles = (m) => (m.solid.indices.length + m.ghost.indices.length + m.ground.indices.length) / 3;
+
+test('ancient: every structure has a build sequence that says what each step rests on', () => {
+  for (const s of ancient.STRUCTURES) {
+    assert.ok(s.steps.length >= 4 && s.steps.length <= 7, `${s.id} has ${s.steps.length} steps`);
+    for (const step of s.steps) {
+      assert.ok(step.title.length > 3 && step.text.length > 40, `${s.id}: ${step.title}`);
+      assert.ok(ancient.BASES.includes(step.basis), `${s.id}: ${step.basis}`);
+    }
+    // nothing is presented as settled where the method is unknown
+    assert.ok(s.steps.some((x) => x.basis !== 'evidence') || s.id === 'parthenon', `${s.id} marks what is not known`);
+  }
+  // the one well-documented build is the Parthenon, whose accounts survive
+  assert.ok(ancient.find('parthenon').steps.every((x) => x.basis === 'evidence'));
+});
+
+test('ancient: a model grows step by step and the last step is the finished structure', () => {
+  for (const s of ancient.STRUCTURES) {
+    const full = ancient.model(s.id);
+    const last = ancient.model(s.id, false, s.steps.length);
+    assert.equal(triangles(last), triangles(full), `${s.id}: last step is the whole`);
+    assert.deepEqual(last.solid.positions, full.solid.positions);
+    assert.ok(triangles(ancient.model(s.id, false, 1)) > 0, `${s.id}: something to see at step 1`);
+    assert.ok(triangles(ancient.model(s.id, false, 1)) < triangles(full), `${s.id}: step 1 is not the whole`);
+    for (let k = 1; k <= s.steps.length; k++) {
+      const m = ancient.model(s.id, false, k);
+      // the frame is that of the finished structure at every step, so the view holds still
+      assert.deepEqual(m.min, full.min); assert.deepEqual(m.max, full.max);
+      for (const mesh of [m.solid, m.ghost, m.ground]) for (const i of mesh.indices) assert.ok(i < mesh.positions.length / 3);
+      assert.equal(m.guides.length % 6, 0);
+    }
+    assert.equal(full.guides.length, 0, `${s.id}: no construction lines on the finished structure`);
+    // a step beyond the end, or none, is the finished structure
+    assert.equal(triangles(ancient.model(s.id, false, 99)), triangles(full));
+  }
+  // solid stone only ever accumulates, except where a later stage replaces a partial one
+  for (const id of ['osireion', 'parthenon', 'stonehenge', 'newgrange', 'kings-chamber']) {
+    const s = ancient.find(id);
+    let prev = 0;
+    for (let k = 1; k <= s.steps.length; k++) {
+      const n = ancient.model(id, false, k).solid.indices.length;
+      assert.ok(n >= prev, `${id} step ${k}`); prev = n;
+    }
+  }
+});
+
+test('ancient: the King\'s Chamber design lines are the lengths the steps describe', () => {
+  const c = ancient.CUBIT;
+  const lengths = (k) => {
+    const g = ancient.model('kings-chamber', false, k).guides, out = [];
+    for (let i = 0; i < g.length; i += 6) out.push(Math.hypot(g[i + 3] - g[i], g[i + 4] - g[i + 1], g[i + 5] - g[i + 2]) / c);
+    return out;
+  };
+  const has = (list, v, tol = 0.02) => list.some((x) => Math.abs(x - v) < tol);
+  const one = lengths(1), two = lengths(2), three = lengths(3);
+  assert.equal(one.length, 5);                                 // the floor's four sides and the line between the two squares
+  assert.ok(has(one, 20) && has(one, 10));
+  assert.ok(has(two, 22.36) && has(two, 11.18), `diagonal and half of it: ${two}`);
+  assert.ok(has(three, 15) && has(three, 25) && has(three, 20), `the 3-4-5 triangle: ${three}`);
+  assert.equal(lengths(4).length, 0);                          // once building starts, the cords are gone
+  // the pyramid's set-out square is 440 cubits a side
+  const g = ancient.model('great-pyramid', false, 1).guides;
+  near(Math.hypot(g[3] - g[0], g[4] - g[1]) / c, 440, 1e-3);
+});
+
+test('ancient: the pyramid is shown part built at the heights of its chambers', () => {
+  const top = (k) => { const m = ancient.model('great-pyramid', false, k); let z = -Infinity; for (let i = 2; i < m.ghost.positions.length; i += 3) z = Math.max(z, m.ghost.positions[i]); return z; };
+  near(top(3), 28, 1e-4);                                      // above the Queen's Chamber, whose roof is at 27 m
+  near(top(4), 50, 1e-4);                                      // above the King's Chamber, floor at 43 m
+  near(top(5), 280 * ancient.CUBIT, 1e-3);
+  // a level cut through a pyramid is a square that shrinks in proportion to the height left
+  const m = ancient.model('great-pyramid', false, 3);
+  let width = 0;
+  for (let i = 0; i < m.ghost.positions.length; i += 3) if (Math.abs(m.ghost.positions[i + 2] - 28) < 1e-6) width = Math.max(width, m.ghost.positions[i] * 2);
+  near(width, 440 * ancient.CUBIT * (1 - 28 / (280 * ancient.CUBIT)), 1e-3);
+  // Newgrange's close-up has the same steps; the mound simply never appears
+  assert.equal(ancient.model('newgrange', true, 4).ghost.indices.length, ancient.model('newgrange', true, 3).ghost.indices.length);
+  assert.ok(ancient.model('newgrange', false, 4).ghost.indices.length > ancient.model('newgrange', false, 3).ghost.indices.length);
 });

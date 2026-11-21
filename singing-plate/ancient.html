@@ -79,6 +79,24 @@
     </div>
     <p class="hint" id="viewCaption">A schematic model placed from published dimensions, in metres. Solid shapes are stone; faint ones are air, earth or water. The small figure is a person 1.7 m tall.</p>
 
+    <div class="mode-block" id="buildBlock">
+      <div class="field-head">
+        <h3 class="label">Build sequence</h3>
+        <span class="label" id="stepCount"></span>
+      </div>
+      <input class="range" id="stepRange" type="range" min="1" max="6" step="1" value="6" aria-label="Step of the build sequence">
+      <div class="btn-row">
+        <button class="btn" id="stepPrev" type="button">Back</button>
+        <button class="btn" id="stepNext" type="button">Next</button>
+        <button class="btn primary" id="stepPlay" type="button" aria-pressed="false">Play from the start</button>
+      </div>
+      <div class="step-head">
+        <p class="value" id="stepTitle"></p>
+        <span class="tag" id="stepBasis"></span>
+      </div>
+      <p class="step-text" id="stepText" aria-live="polite"></p>
+    </div>
+
     <div class="mode-block" id="modeBlock" hidden>
       <div class="field-head">
         <h3 class="label">Standing waves in the room</h3>
@@ -135,6 +153,8 @@
       <p>Any two lengths make a ratio, and every ratio lies near some interval. Measure enough of a building and matches will turn up by chance. A proportion is strong evidence of design only when it comes out as whole numbers in the builders' own units, as with the King's Chamber in cubits. Each ratio here says whether it does, and how far it is from the pure interval. Within about 10 cents the ear hears it as in tune.</p>
       <h3 class="label">Three kinds of statement</h3>
       <p><span class="tag" data-status="measured">Measured</span> means someone measured it and published the result. <span class="tag" data-status="computed">Computed</span> means it is worked out from the dimensions, here or in a published calculation, for an idealised shape. <span class="tag" data-status="claimed">Claimed</span> means it is widely said, and no measurement was found to support it. A claim is not shown as false; it is shown as unsupported.</p>
+      <h3 class="label">The build sequence</h3>
+      <p>Each model can be stepped through in the order it went up. Bright lines are cords: the geometry that sets out the design before any stone is laid. Every step is marked <span class="tag" data-status="measured">From the remains or records</span>, <span class="tag" data-status="computed">Inferred</span> where it follows from the remains but nothing records it, or <span class="tag" data-status="claimed">Debated</span> where specialists disagree. How the heaviest stones were lifted is debated or unrecorded at every site here except the Parthenon.</p>
       <h3 class="label">What a room does to sound</h3>
       <p>Air in a closed room has notes of its own, set by its size: the longest is the one whose half wavelength just fits the longest side. Stone walls reflect nearly all the sound that reaches them, so these notes ring strongly. A chamber a few metres across lands in the range of a low voice whoever built it and why. That is the plainest reading of the 110 Hz found in Neolithic chambers, and it does not rule out that their builders noticed and used it.</p>
       <h3 class="label">What is not here</h3>
