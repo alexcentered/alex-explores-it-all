@@ -1,10 +1,11 @@
 # Singing Plate
 
-Four tools in one app, built around a desktop Chladni plate rig:
+Five tools in one app, built around a desktop Chladni plate rig:
 
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
 - **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.
+- **Ancient forms** (`ancient.html`): six ancient structures in 3D from published dimensions, with their proportions as musical intervals and what is known about their sound.
 - **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
@@ -368,14 +369,56 @@ The struck response is a closed form, not a simulation: the pair separates exact
 
 The models are idealised: a perfectly thin ring, a coil with no gaps between turns, a resonator with one natural frequency, two circuits that match exactly. A real Tesla coil also has a spark gap that switches the primary out once the energy has crossed, and a secondary that behaves partly as a quarter-wave line; neither is modelled. Claims of torus-shaped energy fields round the body, or of free energy from a torus, are not supported by measurement and are not modelled.
 
+## Ancient forms
+
+`ancient.html` shows six structures: the King's Chamber, the Great Pyramid, the Osireion at Abydos, the Parthenon, Stonehenge and Newgrange. Each is described three ways.
+
+### As a shape
+
+A 3D model placed from published dimensions, in metres, with a 1.7 m figure for scale. Worked stone is light, ground and retaining walls are darker, and air, earth or water is see-through with an outline. The models are schematic: flat faces, average sizes, no weathering. The Osireion is the roughest, because its published dimensions differ from source to source. Newgrange has a **Close up** that leaves the mound out so the passage and corbelled roof fill the view. A link such as `ancient.html#osireion` opens a structure directly.
+
+Each structure has a short account of how it was built, with sources.
+
+### As proportions
+
+Pairs of lengths, in the builders' own units where those are known, each with its nearest simple fraction and nearest musical interval, and **Hear** to play it as two tones.
+
+Two strings in the ratio 2 to 1 sound an octave apart, so a room 20 cubits by 10 has an octave between its sides. But any two lengths make a ratio and every ratio is near some interval, so each one states:
+
+- how many cents it is from the pure interval. Within 10 cents it is named; beyond that it reads **No simple interval**.
+- whether it is whole numbers in the builders' units (strong evidence of design) or a modern measurement (weak).
+
+The King's Chamber is the clear case: 20 by 10 cubits with a height of 5√5 makes the end-wall diagonal 15 and the room diagonal 25, a 3-4-5 triangle, giving an exact octave, fourth, major third and major sixth. The Parthenon's 9 to 4 appears three times. The Great Pyramid's slope is whole numbers (14 to 11) and no musical interval. Stonehenge and Newgrange get no ratios, because no units are established for them.
+
+### As sound
+
+Every statement carries a status:
+
+| Status | Meaning |
+| --- | --- |
+| Measured | Someone measured it and published the result. The source is named. |
+| Computed | Worked out from the dimensions, here or in a published calculation, for an idealised shape. |
+| Claimed | Widely said, with no measurement found to support it. Shown as unsupported, not as false. |
+
+Measured results include the 110 Hz resonance at Newgrange (Jahn, Devereux and Ibison, 1996) and the 0.64 s reverberation of a complete Stonehenge (Cox, Fazenda and Greaney, 2020). No acoustic measurement was found for the Osireion or the King's Chamber, and the page says so.
+
+The King's Chamber is a simple enough box for its **room modes** to be computed: `f = (c / 2) √((nx / L)² + (ny / W)² + (nz / H)²)`. Choose one and a level sheet in the model shows where in the room the note is loud and where it nearly vanishes; a slider moves the sheet up and down. The lowest is 16.4 Hz, below hearing, so **Hear it** plays it raised by whole octaves and says by how many. Because the room is a double square, pairs of modes coincide, which any double-square room does.
+
+Sound uses the same safety chain as the console and stops after three seconds or on **Esc**.
+
+### What it leaves out
+
+Room modes are for an empty hard-walled box, not a survey of the real chamber. The Hypogeum in Malta and Chavín de Huántar in Peru have published acoustic studies and irregular shapes, and are not modelled.
+
 ## Layout
 
 ```
 index.html          the console
 lab.html            the 3D lab
 fields.html         field lines, the rotating field, the resonance curve
+ancient.html        ancient structures: shape, proportion, sound
 line.html           the line test
-css/styles.css      theme and layout for all four
+css/styles.css      theme and layout for all five
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
 vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
@@ -391,6 +434,8 @@ js/core/            pure logic, no browser APIs: unit tested
   chance.js           the statistics behind the line test
   fields.js           ring and coil fields, field lines, rotating field, resonance,
                       coupled circuits
+  ancient.js          six structures: shapes, ratios, room modes, statements
+                      about sound with their status
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
@@ -398,8 +443,9 @@ js/audio/duo.js     two tones a hair apart, for the line test
 js/audio/strike.js  plays one prepared burst, for the fields page
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
 js/ui/              app.js wires the console, lab.js the lab, fields.js the fields page,
-                    line.js the line test; dial, plate view, 3D viewer and field view
-                    are the parts they use
+                    ancient.js the ancient forms page, line.js the line test; dial,
+                    plate view, 3D viewer, field view and ancient view are the parts
+                    they use
 tests/              unit tests for js/core
 tools/              entry file for rebuilding the Three.js bundle
 docs/               mission brief
