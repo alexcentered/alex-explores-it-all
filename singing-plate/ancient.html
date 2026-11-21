@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Ancient forms</title>
+<meta name="description" content="Six ancient structures in 3D, built from published dimensions: how they were made, their proportions as musical intervals, and what is known about their sound.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Ancient forms</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="index.html">Console</a>
+    <a href="lab.html">3D lab</a>
+    <a href="fields.html">Fields</a>
+    <a href="ancient.html" aria-current="page">Ancient</a>
+    <a href="line.html">Line test</a>
+  </nav>
+  <div class="topbar-tools">
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="ancient-grid">
+
+  <!-- ============================================================ STRUCTURE -->
+  <section class="panel ancient-pick" aria-labelledby="pickTitle">
+    <div class="panel-head"><h2 id="pickTitle">Structure</h2></div>
+    <div class="pick-list" id="pickList" role="radiogroup" aria-label="Structure"></div>
+
+    <dl class="pick-facts">
+      <div><dt>Where</dt><dd id="factPlace"></dd></div>
+      <div><dt>When</dt><dd id="factDate"></dd></div>
+      <div><dt>Material</dt><dd id="factMaterial"></dd></div>
+      <div><dt>Size</dt><dd id="factSize"></dd></div>
+    </dl>
+
+    <div class="prose" id="builtText">
+      <h3 class="label">How it was built</h3>
+    </div>
+
+    <details class="fold">
+      <summary>Sources</summary>
+      <ul class="source-list" id="sourceList"></ul>
+    </details>
+  </section>
+
+  <!-- ================================================================= VIEW -->
+  <section class="panel ancient-view" aria-labelledby="viewTitle">
+    <div class="panel-head">
+      <h2 id="viewTitle">3D model</h2>
+      <div class="btn-row tight">
+        <button class="btn" id="closeBtn" type="button" aria-pressed="false" hidden>Close up</button>
+        <button class="btn ghost" id="viewReset" type="button">Reset view</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" role="img" aria-label="Three-dimensional model of the structure. Drag to orbit, scroll to zoom.">
+      <p class="stage-msg" id="stageMsg" hidden></p>
+    </div>
+    <p class="hint" id="viewCaption">A schematic model placed from published dimensions, in metres. Solid shapes are stone; faint ones are air, earth or water. The small figure is a person 1.7 m tall.</p>
+
+    <div class="mode-block" id="modeBlock" hidden>
+      <div class="field-head">
+        <h3 class="label">Standing waves in the room</h3>
+        <span class="label" id="modeCount"></span>
+      </div>
+      <div class="chips" id="modeList" role="group" aria-label="Room modes"></div>
+      <p class="value" id="modeText"></p>
+      <div class="field" id="sheetField">
+        <div class="field-head">
+          <label class="label" for="sheetHeight">Height of the sheet</label>
+          <output class="label" id="sheetOut" for="sheetHeight"></output>
+        </div>
+        <input class="range" id="sheetHeight" type="range" min="0" max="100" step="1" value="29">
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="modeHear" type="button">Hear it</button>
+        <span class="hint" id="modeHearNote"></span>
+      </div>
+      <p class="hint" id="sheetHint"></p>
+    </div>
+  </section>
+
+  <!-- ========================================================== PROPORTIONS -->
+  <section class="panel ancient-ratio" aria-labelledby="ratioTitle">
+    <div class="panel-head">
+      <h2 id="ratioTitle">Proportions</h2>
+      <span class="label" id="ratioCount"></span>
+    </div>
+    <div class="ratio-list" id="ratioList"></div>
+    <p class="hint" id="ratioNote"></p>
+  </section>
+
+  <!-- ================================================================ SOUND -->
+  <section class="panel ancient-sound" aria-labelledby="soundTitle">
+    <div class="panel-head"><h2 id="soundTitle">Sound</h2></div>
+    <ul class="sound-list" id="soundList"></ul>
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="volume">Sound volume</label>
+        <output class="label" id="volumeOut" for="volume">25%</output>
+      </div>
+      <input class="range" id="volume" type="range" min="0" max="100" step="1" value="25">
+      <p class="hint">For the Hear buttons on this page. Sound goes through the same limited output as the console and stops by itself after three seconds.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ BRIEF -->
+  <section class="panel ancient-brief" aria-labelledby="briefTitle">
+    <div class="panel-head"><h2 id="briefTitle">How to read this page</h2></div>
+    <div class="prose">
+      <h3 class="label">Proportion and music are the same arithmetic</h3>
+      <p>Two strings whose lengths are in the ratio 2 to 1 sound an octave apart; 3 to 2, a fifth; 4 to 3, a fourth. A room 20 cubits by 10 has the same ratio between its sides as an octave has between its notes. That is why a building can be described in musical terms at all, and why Greek and later writers tied the two together.</p>
+      <h3 class="label">A ratio alone proves little</h3>
+      <p>Any two lengths make a ratio, and every ratio lies near some interval. Measure enough of a building and matches will turn up by chance. A proportion is strong evidence of design only when it comes out as whole numbers in the builders' own units, as with the King's Chamber in cubits. Each ratio here says whether it does, and how far it is from the pure interval. Within about 10 cents the ear hears it as in tune.</p>
+      <h3 class="label">Three kinds of statement</h3>
+      <p><span class="tag" data-status="measured">Measured</span> means someone measured it and published the result. <span class="tag" data-status="computed">Computed</span> means it is worked out from the dimensions, here or in a published calculation, for an idealised shape. <span class="tag" data-status="claimed">Claimed</span> means it is widely said, and no measurement was found to support it. A claim is not shown as false; it is shown as unsupported.</p>
+      <h3 class="label">What a room does to sound</h3>
+      <p>Air in a closed room has notes of its own, set by its size: the longest is the one whose half wavelength just fits the longest side. Stone walls reflect nearly all the sound that reaches them, so these notes ring strongly. A chamber a few metres across lands in the range of a low voice whoever built it and why. That is the plainest reading of the 110 Hz found in Neolithic chambers, and it does not rule out that their builders noticed and used it.</p>
+      <h3 class="label">What is not here</h3>
+      <p>The models are schematic: flat faces, average sizes, no weathering or damage. Only the King's Chamber is a simple enough box for its notes to be computed. The Hypogeum in Malta and the galleries at Chavín de Huántar in Peru have published acoustic studies and irregular shapes, and are not modelled yet.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · ancient forms · schematic models from published dimensions</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/ancient.js"></script>
+<script src="js/audio/duo.js"></script>
+<script src="vendor/three.bundle.js"></script>
+<script src="js/ui/viewer.js"></script>
+<script src="js/ui/ancientview.js"></script>
+<script src="js/ui/ancient.js"></script>
+</body>
+</html>

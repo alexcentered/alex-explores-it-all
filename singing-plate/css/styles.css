@@ -821,6 +821,91 @@ a.entry-photo-link { display: block; border-radius: 9px; }
   .fields-brief .prose h3 { margin: 14px 0 10px; break-after: avoid; }
 }
 
+/* --------------------------------------------------------------- ancient */
+
+.ancient-grid {
+  display: grid;
+  gap: var(--gap);
+  max-width: 1480px;
+  margin: 0 auto;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "view" "pick" "ratio" "sound" "brief";
+}
+.ancient-pick { grid-area: pick; }
+.ancient-view { grid-area: view; }
+.ancient-ratio { grid-area: ratio; }
+.ancient-sound { grid-area: sound; }
+.ancient-brief { grid-area: brief; }
+@media (min-width: 900px) {
+  .ancient-grid {
+    grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+    grid-template-areas: "pick view" "pick ratio" "pick sound" "brief brief";
+  }
+}
+@media (min-width: 1280px) {
+  .ancient-grid {
+    grid-template-columns: 340px minmax(0, 1fr) 380px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "pick view ratio" "pick view sound" "brief brief brief";
+  }
+}
+
+.pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.pick {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  padding: 9px 11px; min-width: 0;
+  background: var(--well); border: 1px solid var(--line); border-radius: 10px;
+  text-align: left; cursor: pointer;
+}
+.pick:hover { border-color: var(--line-strong); }
+.pick[aria-checked="true"] { background: var(--solid); color: var(--on-solid); border-color: var(--solid); }
+.pick-name { font-size: 13px; font-weight: 700; }
+.pick-place { font-size: 10.5px; color: var(--mute); line-height: 1.35; }
+.pick[aria-checked="true"] .pick-place { color: inherit; opacity: 0.7; }
+
+.pick-facts { display: flex; flex-direction: column; }
+.pick-facts div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.pick-facts dt { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); padding-top: 1px; }
+.pick-facts dd { font-size: 12.5px; line-height: 1.5; color: var(--fg-soft); }
+.source-list { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--mute); line-height: 1.5; }
+
+.mode-block { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+.mode-block .chips { max-height: none; }
+
+.tag {
+  display: inline-block; flex: none;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+  border: 1px solid var(--line-strong); color: var(--fg-soft);
+}
+.tag[data-status="measured"] { background: var(--solid); color: var(--on-solid); border-color: var(--solid); }
+.tag[data-status="claimed"] { border-style: dashed; color: var(--mute); }
+
+.ratio-list { display: flex; flex-direction: column; gap: 10px; }
+.ratio-card { display: flex; flex-direction: column; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }
+.ratio-value { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: pre-wrap; }
+.ratio-interval { font-size: 12.5px; color: var(--fg-soft); line-height: 1.5; }
+.ratio-interval b { color: var(--fg); }
+.ratio-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ratio-foot .btn { min-height: 30px; padding: 4px 14px; }
+.ratio-foot .tag { white-space: normal; }
+
+.sound-list { display: flex; flex-direction: column; gap: 14px; }
+.sound-item { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.sound-item p { font-size: 13px; line-height: 1.6; color: var(--fg-soft); }
+.ancient-brief .tag { vertical-align: 1px; }
+@media (min-width: 1000px) {
+  .ancient-brief .prose { display: block; max-width: none; columns: 2; column-gap: 40px; }
+  .ancient-brief .prose p { margin-bottom: 10px; break-inside: avoid; }
+  .ancient-brief .prose h3 { margin: 14px 0 10px; break-after: avoid; }
+}
+
+@media (max-width: 520px) {
+  .tabs { max-width: 100%; }
+  .tabs a { padding: 6px 8px; letter-spacing: 0.06em; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
