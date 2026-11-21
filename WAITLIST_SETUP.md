@@ -55,16 +55,18 @@ This guide walks you through setting up the waitlist form backend using Google A
    https://script.google.com/macros/s/AKfycby.../exec
    ```
 
-### Step 5: Update index.html
+### Step 5: Verify the Configuration
+
+The `index.html` file is already configured with the Apps Script URL. If you need to update it in the future (for example, if you redeploy the script):
 
 1. Open `index.html` in this repository
-2. Find the line with `APPS_SCRIPT_URL_HERE` (around line 125)
-3. Replace `APPS_SCRIPT_URL_HERE` with your web app URL from step 4
+2. Find the fetch call (around line 124)
+3. Replace the URL in the fetch with your new web app URL
 4. Save the file
 5. Commit and push:
    ```bash
    git add index.html
-   git commit -m "Configure waitlist backend URL"
+   git commit -m "Update waitlist backend URL"
    git push
    ```
 
