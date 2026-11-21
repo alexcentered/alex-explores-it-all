@@ -1,8 +1,8 @@
 {
   "name": "singing-plate",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
-  "description": "Operation Singing Plate: frequency console and 3D form lab for a desktop Chladni plate rig.",
+  "description": "Operation Singing Plate: frequency console, 3D form lab and fields page for a desktop Chladni plate rig.",
   "scripts": {
     "start": "python3 -m http.server 8080",
     "test": "node --test tests/*.test.js",

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Fields</title>
+<meta name="description" content="Magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, and the resonance curve.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Fields</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="index.html">Console</a>
+    <a href="lab.html">3D lab</a>
+    <a href="fields.html" aria-current="page">Fields</a>
+    <a href="line.html">Line test</a>
+  </nav>
+  <div class="topbar-tools">
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="fields-grid">
+
+  <!-- ========================================================= FIELD LINES -->
+  <section class="panel fields-lines" aria-labelledby="linesTitle">
+    <div class="panel-head">
+      <h2 id="linesTitle">Field lines</h2>
+      <div class="seg small" id="kindSeg" role="group" aria-label="What makes the field">
+        <label><input type="radio" name="kind" value="ring"><span>Ring</span></label>
+        <label><input type="radio" name="kind" value="coil"><span>Coil</span></label>
+        <label><input type="radio" name="kind" value="both" checked><span>Both</span></label>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" role="img" aria-label="Three-dimensional view of magnetic field lines. Drag to orbit, scroll to zoom.">
+      <p class="stage-msg" id="stageMsg" hidden></p>
+    </div>
+
+    <div class="view-foot">
+      <p class="value" id="kindCaption"></p>
+      <div class="btn-row">
+        <button class="btn" id="flowBtn" type="button" aria-pressed="true">Freeze</button>
+        <button class="btn ghost" id="viewReset" type="button">Reset view</button>
+      </div>
+    </div>
+
+    <div class="field" id="twistField">
+      <div class="field-head">
+        <label class="label" for="twist">Ring current against coil current</label>
+        <output class="label" id="twistOut" for="twist"></output>
+      </div>
+      <input class="range" id="twist" type="range" min="0.05" max="1.5" step="0.05" value="0.3">
+    </div>
+    <p class="hint" id="kindHint"></p>
+  </section>
+
+  <!-- ====================================================== ROTATING FIELD -->
+  <section class="panel fields-turn" aria-labelledby="turnTitle">
+    <div class="panel-head">
+      <h2 id="turnTitle">Rotating field</h2>
+      <div class="seg small" id="phaseSeg" role="group" aria-label="Number of phases">
+        <label><input type="radio" name="phases" value="1"><span>1 phase</span></label>
+        <label><input type="radio" name="phases" value="2"><span>2 phase</span></label>
+        <label><input type="radio" name="phases" value="3" checked><span>3 phase</span></label>
+      </div>
+    </div>
+
+    <div class="turn-screen">
+      <canvas id="turnCanvas" role="img" aria-label="Coils round a circle. A thin arrow shows each coil's field; the heavy arrow is their sum."></canvas>
+    </div>
+    <div class="turn-screen strip">
+      <canvas id="phaseCanvas" role="img" aria-label="The current in each coil over one cycle, with a marker at the present moment."></canvas>
+    </div>
+
+    <div class="view-foot">
+      <p class="value" id="turnCaption"></p>
+      <div class="btn-row">
+        <button class="btn" id="turnBtn" type="button" aria-pressed="true">Pause</button>
+      </div>
+    </div>
+
+    <div class="turn-controls">
+      <div class="field">
+        <label class="label" for="supplyHz">Supply, Hz</label>
+        <input class="input" id="supplyHz" type="number" inputmode="decimal" min="1" max="1000" step="1" value="60">
+      </div>
+      <div class="field">
+        <label class="label" for="poles">Poles</label>
+        <select class="input" id="poles">
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+    </div>
+    <dl class="facts">
+      <div><dt>Field turns at</dt><dd id="rpm">--</dd></div>
+      <div><dt>Turns a second</dt><dd id="rps">--</dd></div>
+      <div><dt>Field strength</dt><dd id="strength">--</dd></div>
+      <div><dt>Shown slowed</dt><dd id="slowed">--</dd></div>
+    </dl>
+    <p class="hint">Speed in revolutions a minute = 120 × supply frequency ÷ number of poles. The picture shows one pair of poles; more poles turn the field more slowly.</p>
+  </section>
+
+  <!-- =========================================================== RESONANCE -->
+  <section class="panel fields-res" aria-labelledby="resTitle">
+    <div class="panel-head">
+      <h2 id="resTitle">Resonance curve</h2>
+      <span class="label" id="resState"></span>
+    </div>
+
+    <div class="res-body">
+      <div class="res-controls">
+        <div class="field">
+          <label class="label" for="f0">Natural frequency, Hz</label>
+          <input class="input" id="f0" type="number" inputmode="decimal" min="1" max="20000" step="0.1" value="440">
+          <p class="hint" id="f0Hint"></p>
+        </div>
+        <div class="field">
+          <div class="field-head">
+            <label class="label" for="q">Sharpness, Q</label>
+            <output class="label" id="qOut" for="q"></output>
+          </div>
+          <input class="range" id="q" type="range" min="0" max="300" step="1" value="148">
+          <p class="hint">Rough guide: a car's suspension is near 1, a tuned radio coil about 100, a tuning fork about 1,000. A quartz crystal is 10,000 and up, past the end of this slider.</p>
+        </div>
+        <div class="field">
+          <div class="field-head">
+            <label class="label" for="drive">Drive frequency</label>
+            <output class="label" id="driveOut" for="drive"></output>
+          </div>
+          <input class="range centred" id="drive" type="range" min="-1000" max="1000" step="0.1" value="0">
+          <div class="btn-row tight">
+            <button class="btn step" id="edgeLow" type="button">Lower edge</button>
+            <button class="btn step" id="atPeak" type="button">Resonance</button>
+            <button class="btn step" id="edgeHigh" type="button">Upper edge</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="res-plots">
+        <div class="turn-screen">
+          <canvas id="resCanvas" role="img" aria-label="How strongly the resonator responds at each drive frequency. The peak is at its natural frequency."></canvas>
+        </div>
+        <div class="turn-screen strip">
+          <canvas id="lagCanvas" role="img" aria-label="The drive, dashed, and the response, solid, over three cycles."></canvas>
+        </div>
+        <p class="hint">Top: response against drive frequency, from a quarter of the natural frequency to four times it. The shaded band is the bandwidth. Bottom: the drive (dashed, for timing only) and the response (solid, drawn against its own peak height).</p>
+      </div>
+    </div>
+
+    <dl class="facts">
+      <div><dt>Response</dt><dd id="gain">--</dd></div>
+      <div><dt>Lag behind drive</dt><dd id="lag">--</dd></div>
+      <div><dt>Bandwidth</dt><dd id="bw">--</dd></div>
+      <div><dt>Rings for</dt><dd id="ring">--</dd></div>
+      <div><dt>Cycles to fade</dt><dd id="cycles">--</dd></div>
+    </dl>
+  </section>
+
+  <!-- =============================================================== BRIEF -->
+  <section class="panel fields-brief" aria-labelledby="briefTitle">
+    <div class="panel-head"><h2 id="briefTitle">What you are looking at</h2></div>
+    <div class="prose">
+      <h3 class="label">Field lines</h3>
+      <p>A magnetic field line shows which way a compass needle would point at each place along it. The bright pulses travel in that direction. Field lines never start or end: every one is a closed loop, or runs off to a great distance and comes back.</p>
+      <p><b>Ring.</b> A current round a single ring makes lines that go up through the hole and back down round the outside. Far away, the Earth's field has this shape, and so does a bar magnet's.</p>
+      <p><b>Coil.</b> Wind the wire round a ring-shaped former and the field is trapped inside it, running round the ring. Outside there is almost none, which is why power supplies and audio equipment use toroidal transformers. The field is stronger on the inner side of the former, in proportion to 1 ÷ distance from the axis.</p>
+      <p><b>Both.</b> Add a current round the ring to the coil's field and each line becomes a helix that stays on its own ring-shaped surface, nested inside the others like the layers of an onion. A tokamak fusion reactor holds its plasma on surfaces like these.</p>
+      <h3 class="label">The rotating field</h3>
+      <p>One coil carrying alternating current makes a field that grows, shrinks and reverses along a single line. Two or three coils set at angles, with currents that peak one after another, add up to a field of steady strength that turns. A piece of metal inside is dragged round with it, with no brushes or sliding contacts. Nikola Tesla presented this to the American Institute of Electrical Engineers in May 1888, and the induction motors built on it still drive most of industry.</p>
+      <h3 class="label">Resonance</h3>
+      <p>Anything that can ring has a natural frequency. Push it at that frequency and each push adds to the last, so the motion builds until losses carry energy away as fast as the pushes supply it. Q is the number that says how far it builds: at resonance the response is Q times what the same push would produce slowly. A high Q also means a narrow peak and a long ring after the push stops. Each sand pattern on the plate is one of these peaks; the plate simulator on the Console adds many of them together.</p>
+      <h3 class="label">What is not here</h3>
+      <p>These are textbook models: a perfectly thin ring, an ideal coil with no gaps between turns, a resonator with one natural frequency. They show measured physics. Drawings of torus-shaped energy fields round the human body, or of free energy drawn from a torus, are not supported by measurement and are not modelled here.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · fields · textbook models, idealised</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/fields.js"></script>
+<script src="vendor/three.bundle.js"></script>
+<script src="js/ui/viewer.js"></script>
+<script src="js/ui/fieldview.js"></script>
+<script src="js/ui/fields.js"></script>
+</body>
+</html>

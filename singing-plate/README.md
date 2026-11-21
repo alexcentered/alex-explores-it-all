@@ -1,9 +1,10 @@
 # Singing Plate
 
-Three tools in one app, built around a desktop Chladni plate rig:
+Four tools in one app, built around a desktop Chladni plate rig:
 
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
+- **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, and the resonance curve.
 - **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
@@ -295,6 +296,8 @@ Two waves running opposite ways stand still as a chequer of nodes. One wave alon
 
 The frequency treats the torus surface as a flat sheet wrapped both ways, which is exact for an idealised torus and an approximation for a real ring of air.
 
+This is a wave pattern on a torus-shaped surface, not a magnetic field. Field lines are on the Fields page.
+
 ### Printing
 
 A wave pattern has no thickness, so each shape is given what a printer needs: the plate and disc get a base slab, the sphere and torus a flat cut underneath so they sit still, and the room's node sheets a wall thickness plus an optional slab that ties them together.
@@ -314,13 +317,52 @@ Some room modes really are made of separate sheets (a single mode gives flat par
 
 The forms are mathematical models of standing waves, not recordings. They show the idealised shape.
 
+## Fields
+
+`fields.html` shows three pieces of textbook physics. It makes no sound.
+
+### Field lines
+
+A 3D view of magnetic field lines, with bright pulses travelling the way the field points.
+
+- **Ring:** a current round one ring. The lines go up through the hole and back round the outside. This is the far field of the Earth or of a bar magnet. It is computed from the Biot-Savart law, summed over 72 short pieces of the ring, and checked against the closed-form value on the axis.
+- **Coil:** wire wound round a ring-shaped former. The ideal case is used: the field runs round the ring inside the former with strength in proportion to 1 ÷ distance from the axis, and is zero outside.
+- **Both:** the two added together. Each line becomes a helix lying on its own ring-shaped surface, nested inside the others. A slider sets the ring current against the coil current: more ring current winds the lines more tightly. A tokamak confines plasma on surfaces of this kind.
+
+Lines are traced with fourth-order Runge-Kutta steps of fixed length. The unit tests check that the ring's field has zero divergence, that its lines close on themselves, and that a helix returns through the same place each time it goes round the tube.
+
+### Rotating field
+
+Coils round a circle, each fed an alternating current. A thin arrow shows each coil's own field and a heavy arrow their sum, with the currents plotted underneath.
+
+- **1 phase:** the field pulses back and forth along one line and does not turn.
+- **2 phase:** two coils at right angles, a quarter cycle apart. The sum has constant strength and turns.
+- **3 phase:** three coils 120° apart, a third of a cycle apart. The sum has constant strength, 1.5 times one coil's peak, and turns.
+
+Speed in revolutions a minute = 120 × supply frequency ÷ number of poles: 3,600 rpm for 60 Hz and two poles. The animation is slowed so that one supply cycle takes four seconds, and says by how much.
+
+### Resonance curve
+
+How strongly a resonator responds when driven near its natural frequency, and how far it lags the drive: `1 / √((1 − r²)² + (r / Q)²)`, where r is drive frequency ÷ natural frequency.
+
+- **Q** sets the sharpness. At resonance the response is Q times what the same push would produce slowly, and it lags the drive by 90°.
+- **Bandwidth** is natural frequency ÷ Q. **Lower edge** and **Upper edge** put the drive where the response has fallen to 71% of the peak.
+- **Rings for** is how long the motion takes to fade to 37% once the drive stops: Q ÷ (π × natural frequency).
+
+The natural frequency starts at whatever the console is tuned to and follows it until you type one here. Each sand pattern on the plate is one of these peaks; the plate simulator adds many together.
+
+### What it leaves out
+
+The models are idealised: a perfectly thin ring, a coil with no gaps between turns, a resonator with one natural frequency. Claims of torus-shaped energy fields round the body, or of free energy from a torus, are not supported by measurement and are not modelled.
+
 ## Layout
 
 ```
 index.html          the console
 lab.html            the 3D lab
+fields.html         field lines, the rotating field, the resonance curve
 line.html           the line test
-css/styles.css      theme and layout for all three
+css/styles.css      theme and layout for all four
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
 vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
@@ -334,13 +376,15 @@ js/core/            pure logic, no browser APIs: unit tested
   color.js            frequency to colour, by octaves up to light
   relations.js        harmonics, intervals, radio, the tuned circuit, the Earth
   chance.js           the statistics behind the line test
+  fields.js           ring and coil fields, field lines, rotating field, resonance
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
 js/audio/duo.js     two tones a hair apart, for the line test
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
-js/ui/              app.js wires the console, lab.js the lab, line.js the line test;
-                    dial, plate view and 3D viewer are the parts they use
+js/ui/              app.js wires the console, lab.js the lab, fields.js the fields page,
+                    line.js the line test; dial, plate view, 3D viewer and field view
+                    are the parts they use
 tests/              unit tests for js/core
 tools/              entry file for rebuilding the Three.js bundle
 docs/               mission brief
