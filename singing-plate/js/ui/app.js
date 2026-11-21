@@ -10,6 +10,7 @@
 
   var SP = root.SP;
   var F = SP.freq, safety = SP.safety, chladni = SP.chladni, disc = SP.disc;
+  var color = SP.color, rel = SP.relations;
   var SETTINGS_KEY = 'singing-plate:v1';
   var SIM_SIZE = 160;
   var METER_FLOOR_DB = -48;
@@ -25,6 +26,9 @@
     ceilingDb: safety.DEFAULT_CEILING_DB,
     lfGuard: true,
     theme: 'dark',
+    color: false,            // show frequencies as colours; off keeps the console monochrome
+    pulseRate: 7.8,
+    mathCap: 0.1,            // microfarads, for the tuned-circuit card
     view: root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'field' : 'sand',
     sort: 'newest',
     sweep: { from: 100, to: 3000, rate: 5 },
@@ -53,6 +57,9 @@
       state.ceilingDb = safety.sanitizeCeilingDb(s.ceilingDb === undefined ? state.ceilingDb : s.ceilingDb);
       if (typeof s.lfGuard === 'boolean') state.lfGuard = s.lfGuard;
       if (s.theme === 'light' || s.theme === 'dark') state.theme = s.theme;
+      if (typeof s.color === 'boolean') state.color = s.color;
+      if (isFinite(Number(s.pulseRate)) && s.pulseRate > 0) state.pulseRate = Math.min(40, Math.max(0.1, Number(s.pulseRate)));
+      if (isFinite(Number(s.mathCap)) && s.mathCap > 0) state.mathCap = Number(s.mathCap);
       if (s.view === 'sand' || s.view === 'field') state.view = s.view;
       if (s.sort === 'newest' || s.sort === 'freq') state.sort = s.sort;
       if (s.sweep) { sweep.configure(s.sweep); syncSweepState(); }
@@ -74,6 +81,7 @@
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         freq: state.freq, waveform: state.waveform, ceilingDb: state.ceilingDb,
         lfGuard: state.lfGuard, theme: state.theme, view: state.view, sort: state.sort,
+        color: state.color, pulseRate: state.pulseRate, mathCap: state.mathCap,
         sweep: state.sweep, plate: state.plate
       }));
     } catch (e) { /* not fatal */ }
@@ -116,6 +124,8 @@
     renderCapture();
     renderNearest();
     renderGuard();
+    renderToneColour();
+    renderMath();
     renderLife();
     simDirty = true;
   }
@@ -127,14 +137,225 @@
   function renderGuard() {
     var below = state.freq < safety.LF_KNEE_HZ;
     var note = el.guardNote;
-    if (!below) { note.hidden = true; return; }
-    if (state.lfGuard) {
-      var db = safety.linToDb(safety.lfGuardFactor(state.freq, true));
-      note.textContent = 'Driver guard is holding level back by ' + Math.abs(db).toFixed(1) + ' dB at this frequency.';
-    } else {
-      note.textContent = 'Below 60 Hz with the guard off. Keep it quiet and keep it short: this is where drivers overheat.';
+    var high = safety.hfCaution(state.freq);
+    if (high) {
+      note.textContent = high === 'unheard'
+        ? 'You may barely hear this, but children and pets hear it clearly. Do not turn it up because it sounds quiet.'
+        : 'Piercing at any useful level, and hard on small speakers. Keep the volume low and the session short.';
+      note.hidden = false;
+      return;
     }
+    var infra = safety.isInfrasound(state.freq);
+    el.pulseOffer.hidden = !infra;
+    if (!below) { note.hidden = true; return; }
+    var guard = state.lfGuard
+      ? 'Driver guard is holding level back by ' + Math.abs(safety.linToDb(safety.lfGuardFactor(state.freq, true))).toFixed(1) + ' dB at this frequency.'
+      : 'Below 60 Hz with the guard off. Keep it quiet and keep it short: this is where drivers overheat.';
+    note.textContent = infra
+      ? 'Below 20 Hz is infrasound. You will not hear it as a pitch, and most speakers and many amplifiers cannot produce it at all. On the rig it can still shake the plate. ' + guard
+      : guard;
     note.hidden = false;
+  }
+
+  /* ----------------------------------------------------------- colour */
+
+  var toneHex = null;        // colour of the current frequency while Colour is on
+
+  /* Called on every frequency change: keeps --tone and the sand in step. */
+  function renderToneColour() {
+    if (!state.color) { toneHex = null; return; }
+    var t = color.tone(state.freq);
+    toneHex = t.hex;
+    document.documentElement.style.setProperty('--tone', t.hex);
+    if (plateView) plateView.setInk(t.rgb);
+  }
+
+  /* Switch colour on or off everywhere it applies. Off restores the monochrome console exactly. */
+  function applyColor(on) {
+    state.color = !!on;
+    document.documentElement.dataset.color = state.color ? 'on' : 'off';
+    el.colorBtn.setAttribute('aria-pressed', state.color ? 'true' : 'false');
+    if (!state.color) {
+      document.documentElement.style.removeProperty('--tone');
+      toneHex = null;
+      if (plateView) plateView.setInk(state.color ? color.tone(state.freq).rgb : parseColor(ink.fg));
+    drawLissajous();
+    }
+    // Each species' band becomes the stretch of spectrum it covers.
+    Array.prototype.forEach.call(el.lifeList.children, function (li) {
+      var bar = li.querySelector('.life-bar');
+      bar.style.background = state.color ? color.gradient(Number(bar.dataset.lo), Number(bar.dataset.hi)) : '';
+    });
+    renderToneColour();
+    renderMath();
+    drawLissajous();
+    saveSettings();
+  }
+
+  /* ------------------------------------------------------------- math */
+
+  var mathBuilt = false;
+  var mathInterval = 5;      // the fifth
+  var harmonicSet = [];
+
+  function buildMath() {
+    // Harmonics: three below, then the note and seven above.
+    var frag = document.createDocumentFragment();
+    harmonicSet = rel.subharmonics(1, 3).reverse().map(function (h) { return { label: 'f ÷ ' + h.n, k: 1 / h.n }; })
+      .concat(rel.harmonics(1, 8).map(function (h) { return { label: h.n === 1 ? 'f' : h.n + ' f', k: h.n }; }));
+    harmonicSet.forEach(function (h, i) {
+      var chip = make('button', 'chip');
+      chip.type = 'button';
+      chip.dataset.index = i;
+      chip.appendChild(make('span', 'chip-dot'));
+      chip.appendChild(make('span', '', h.label + ' '));
+      chip.appendChild(make('small'));
+      frag.appendChild(chip);
+    });
+    el.mHarmonics.replaceChildren(frag);
+    el.mHarmonics.addEventListener('click', function (e) {
+      var chip = e.target.closest('.chip');
+      if (!chip || chip.dataset.off === 'true') return;
+      setFrequency(state.freq * harmonicSet[Number(chip.dataset.index)].k);
+    });
+
+    var ints = document.createDocumentFragment();
+    rel.INTERVALS.forEach(function (iv, i) {
+      var chip = make('button', 'chip');
+      chip.type = 'button';
+      chip.dataset.index = i;
+      chip.appendChild(make('span', 'chip-dot'));
+      chip.appendChild(make('span', '', iv.name + ' '));
+      chip.appendChild(make('small', '', iv.a + ':' + iv.b));
+      ints.appendChild(chip);
+    });
+    el.mIntervals.replaceChildren(ints);
+    el.mIntervals.addEventListener('click', function (e) {
+      var chip = e.target.closest('.chip');
+      if (!chip) return;
+      mathInterval = Number(chip.dataset.index);
+      renderMath();
+      drawLissajous();
+    });
+    el.mIntervalTune.addEventListener('click', function () {
+      setFrequency(state.freq * rel.INTERVALS[mathInterval].ratio);
+    });
+
+    // The Earth: textbook cavity against what is measured.
+    var rows = document.createDocumentFragment();
+    rel.EARTH.measured.forEach(function (hz, i) {
+      var tr = make('tr');
+      tr.appendChild(make('th', '', String(i + 1)));
+      tr.querySelector('th').scope = 'row';
+      tr.appendChild(make('td', '', rel.EARTH.ideal(i + 1).toFixed(1) + ' Hz'));
+      tr.appendChild(make('td', '', hz + ' Hz'));
+      var td = make('td');
+      var btn = make('button', 'btn', 'Tune');
+      btn.type = 'button';
+      btn.dataset.tune = hz;
+      btn.setAttribute('aria-label', 'Tune to ' + hz + ' hertz, Earth resonance mode ' + (i + 1));
+      td.appendChild(btn);
+      tr.appendChild(td);
+      rows.appendChild(tr);
+    });
+    el.mEarth.querySelector('tbody').replaceChildren(rows);
+    el.mEarth.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tune]');
+      if (btn) setFrequency(Number(btn.dataset.tune));
+    });
+    el.mCircuit.textContent = rel.EARTH.circuit.toFixed(2);
+
+    el.mCap.value = state.mathCap;
+    el.mCap.addEventListener('change', function () {
+      var v = Number(el.mCap.value);
+      state.mathCap = isFinite(v) && v > 0 ? v : state.mathCap;
+      el.mCap.value = state.mathCap;
+      renderMath();
+      saveSettings();
+    });
+    mathBuilt = true;
+  }
+
+  /* Called on every frequency change, so it only rewrites text and a few styles. */
+  function renderMath() {
+    if (!mathBuilt) return;
+    var f = state.freq;
+    el.mOmega.textContent = rel.formatSI(rel.angular(f), 'rad/s') + ' · one turn every ' + formatPeriod(F.periodMs(f));
+
+    var t = color.tone(f);
+    el.mOctaves.textContent = t.octaves;
+    el.mLight.textContent = t.thz.toFixed(1) + ' THz · ' + t.nm.toFixed(0) + ' nm · ' + t.name;
+    el.mSwatch.style.background = t.hex;
+
+    var em = rel.emWavelength(f);
+    el.mEm.textContent = rel.formatSI(em, 'm') + ' long';
+    el.mEmNote.textContent = 'The same number of cycles a second, carried by an electromagnetic field and not by air, moves at the speed of light. Each wave is then about ' +
+      Math.round(rel.C_LIGHT / rel.C_SOUND).toLocaleString('en-US') + ' times longer than the sound. Radio at this frequency is called ' +
+      rel.emBand(f) + ', and a quarter-wave aerial for it would be ' + rel.formatSI(rel.quarterWave(f), 'm') + ' long.';
+
+    el.mCoil.textContent = 'needs a coil of ' + rel.formatSI(rel.lcInductance(f, state.mathCap * 1e-6), 'H');
+
+    Array.prototype.forEach.call(el.mHarmonics.children, function (chip, i) {
+      var hz = f * harmonicSet[i].k;
+      var ok = hz >= F.F_MIN && hz <= F.F_MAX;
+      chip.dataset.off = ok ? 'false' : 'true';
+      chip.disabled = !ok;
+      chip.lastChild.textContent = (hz >= 1000 ? (hz / 1000).toFixed(2) + ' kHz' : hz.toFixed(1) + ' Hz') + (ok ? ' · ' + F.noteInfo(hz).label : '');
+      if (harmonicSet[i].k === 1) chip.setAttribute('aria-current', 'true');
+      chip.firstChild.style.background = color.tone(hz).hex;
+    });
+
+    var iv = rel.INTERVALS[mathInterval];
+    var target = f * iv.ratio;
+    Array.prototype.forEach.call(el.mIntervals.children, function (chip, i) {
+      if (i === mathInterval) chip.setAttribute('aria-current', 'true'); else chip.removeAttribute('aria-current');
+      chip.firstChild.style.background = color.tone(f * rel.INTERVALS[i].ratio).hex;
+    });
+    el.mIntervalText.textContent = iv.name + ' above ' + F.formatHz(f) + ' Hz is ' + target.toFixed(1) + ' Hz · ' +
+      iv.a + ':' + iv.b + ' · ' + Math.round(iv.cents) + ' cents';
+    el.mIntervalTune.disabled = target > F.F_MAX || iv.ratio === 1;
+  }
+
+  /* The figure for the chosen ratio. Redrawn only when the ratio, theme or colour changes. */
+  function drawLissajous() {
+    if (!mathBuilt) return;
+    var iv = rel.INTERVALS[mathInterval];
+    var c = el.mLissajous, ctx = c.getContext('2d');
+    var w = c.width, pad = 26, half = w / 2 - pad;
+    ctx.clearRect(0, 0, w, w);
+    var pts = rel.lissajous(iv.a, iv.b, Math.PI / 2, 900);
+    ctx.strokeStyle = toneHex || ink.fg;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i += 2) {
+      var x = w / 2 + pts[i] * half, y = w / 2 - pts[i + 1] * half;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    c.setAttribute('aria-label', 'Lissajous figure for the ratio ' + iv.a + ' to ' + iv.b + ', the ' + iv.name.toLowerCase());
+  }
+
+  /* ------------------------------------------------------------ pulse */
+
+  function pulseRate() {
+    var v = Number(el.pulseRate.value);
+    return isFinite(v) && v > 0 ? Math.min(40, Math.max(0.1, Math.round(v * 10) / 10)) : state.pulseRate;
+  }
+
+  function applyPulse() {
+    state.pulseRate = pulseRate();
+    el.pulseRate.value = state.pulseRate;
+    engine.setPulse(el.pulseOn.checked ? state.pulseRate : 0);
+    saveSettings();
+  }
+
+  /* Swap an inaudible tone for an audible one that throbs at the same rate. */
+  function hearAsPulse() {
+    el.pulseRate.value = Math.min(40, Math.max(0.1, state.freq));
+    el.pulseOn.checked = true;
+    applyPulse();
+    setFrequency(220);
   }
 
   /* ------------------------------------------------------------- life */
@@ -159,6 +380,8 @@
       var track = make('div', 'life-track');
       var bar = make('div', 'life-bar');
       var left = F.freqToDial(band.lo) * 100, right = F.freqToDial(band.hi) * 100;
+      bar.dataset.lo = band.lo;
+      bar.dataset.hi = band.hi;
       bar.style.left = left + '%';
       bar.style.width = Math.max(0, right - left) + '%';
       var open = (s.lo < band.lo ? 'lo ' : '') + (s.hi > band.hi ? 'hi' : '');
@@ -178,7 +401,7 @@
     el.lifeList.replaceChildren(frag);
 
     var scale = document.createDocumentFragment();
-    [[20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k']].forEach(function (t) {
+    [[20, '20'], [50, '50'], [100, '100'], [200, '200'], [500, '500'], [1000, '1k'], [2000, '2k'], [5000, '5k'], [10000, '10k'], [20000, '20k']].forEach(function (t) {
       var tick = make('span', '', t[1]);
       tick.style.left = F.freqToDial(t[0]) * 100 + '%';
       scale.appendChild(tick);
@@ -191,12 +414,112 @@
       var dt = make('dt', '', b.who + ' ');
       dt.appendChild(make('span', '', '· ' + b.band));
       wrap.appendChild(dt);
-      wrap.appendChild(make('dd', '', b.note));
+      var dd = make('dd', '', b.note);
+      appendSims(dd, b);
+      wrap.appendChild(dd);
       beyond.appendChild(wrap);
     });
     el.lifeBeyond.replaceChildren(beyond);
+    buildBeyondEarth();
+
+    // One handler for every Simulate button on the panel.
+    el.life.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-sim]');
+      if (!btn) return;
+      simActive = { hz: Number(btn.dataset.sim), text: btn.dataset.simText };
+      setFrequency(simActive.hz);
+    });
 
     el.lifeList.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tune]');
+      if (btn) setFrequency(Number(btn.dataset.tune));
+    });
+  }
+
+  var simActive = null;     // the simulation now playing, if the frequency still matches it
+
+  /* Add a Simulate button for each octave-shifted version an entry offers. */
+  function appendSims(parent, entry) {
+    if (!entry.sims || !entry.sims.length) return;
+    var life = SP.life;
+    var row = make('div', 'sim-row');
+    entry.sims.forEach(function (sim) {
+      var hz = life.simulate(sim);
+      var shift = life.describeShift(sim.octaves);
+      var btn = make('button', 'btn sim');
+      btn.type = 'button';
+      btn.appendChild(make('span', '', 'Simulate at ' + hz.toLocaleString('en-US') + ' Hz'));
+      btn.appendChild(make('small', '', sim.label + ' · ' + shift));
+      btn.dataset.sim = hz;
+      btn.dataset.simText = sim.label + ', shifted ' + shift + ' to ' + hz.toLocaleString('en-US') +
+        ' Hz. Same note, different register: the real frequency cannot be played by a speaker.';
+      btn.setAttribute('aria-label', 'Simulate ' + sim.label + ' at ' + hz + ' hertz, ' + shift);
+      row.appendChild(btn);
+    });
+    parent.appendChild(row);
+  }
+
+  /*
+   * Beyond Earth: measurements in one list, claims in others. The layout
+   * keeps them apart so a claim is never read as a measurement.
+   */
+  function buildBeyondEarth() {
+    var life = SP.life;
+
+    var search = document.createDocumentFragment();
+    life.SEARCH.forEach(function (e) {
+      var wrap = make('div');
+      var dt = make('dt', '', e.what + ' ');
+      dt.appendChild(make('span', '', '· ' + e.band));
+      dt.appendChild(make('small', '', e.when));
+      wrap.appendChild(dt);
+      var dd = make('dd', '', e.note);
+      appendSims(dd, e);
+      wrap.appendChild(dd);
+      search.appendChild(wrap);
+    });
+    el.searchList.replaceChildren(search);
+
+    var reports = document.createDocumentFragment();
+    life.REPORTS.forEach(function (r) {
+      var li = make('li', 'report');
+      li.appendChild(make('div', 'report-who', r.who));
+      li.appendChild(make('div', 'life-tag', life.EVIDENCE.claim));
+      var dl = make('dl');
+      [['Home', r.home], ['Where the account comes from', r.source],
+        ['Said to communicate by', r.mode], ['Frequency', r.frequency]].forEach(function (row) {
+        var wrap = make('div');
+        wrap.appendChild(make('dt', '', row[0]));
+        wrap.appendChild(make('dd', '', row[1]));
+        dl.appendChild(wrap);
+      });
+      li.appendChild(dl);
+      reports.appendChild(li);
+    });
+    el.reportList.replaceChildren(reports);
+
+    var accounts = document.createDocumentFragment();
+    life.ACCOUNTS.forEach(function (a) {
+      var li = make('li', 'account');
+      var head = make('div');
+      head.appendChild(make('div', 'account-what', a.what));
+      head.appendChild(make('div', 'account-freq', a.frequency));
+      head.appendChild(make('div', 'life-tag', a.tag || life.EVIDENCE.claim));
+      li.appendChild(head);
+      if (a.tune !== undefined) {
+        var tune = make('button', 'btn', 'Tune to ' + a.tune.toLocaleString('en-US') + ' Hz');
+        tune.type = 'button';
+        tune.dataset.tune = a.tune;
+        li.appendChild(tune);
+      } else {
+        li.appendChild(make('span'));
+      }
+      li.appendChild(make('p', 'account-note', a.note));
+      appendSims(li, a);
+      accounts.appendChild(li);
+    });
+    el.accountList.replaceChildren(accounts);
+    el.accountList.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-tune]');
       if (btn) setFrequency(Number(btn.dataset.tune));
     });
@@ -205,6 +528,10 @@
   /* Called on every frequency change, sweeps included, so it does as little as it can. */
   function renderLife() {
     if (!el.lifeList) return;
+    // The simulation note stays only while the console is still on that frequency.
+    if (simActive && simActive.hz !== state.freq) simActive = null;
+    el.simNote.hidden = !simActive;
+    if (simActive) el.simNote.textContent = 'Simulation: ' + simActive.text;
     el.lifeList.style.setProperty('--cursor', (F.freqToDial(state.freq) * 100).toFixed(2) + '%');
     var active = SP.life.activeAt(state.freq);
     var key = active.map(function (s) { return s.id; }).join(',');
@@ -432,7 +759,7 @@
     var mode = chladni.nearestMode(modes, state.freq);
     if (!mode) {
       el.simMode.textContent = 'None';
-      el.simModeHz.textContent = 'in the 20 Hz to 5 kHz range';
+      el.simModeHz.textContent = 'in the 1 Hz to 20 kHz range';
       el.simDelta.textContent = '--';
       el.jumpBtn.disabled = el.alignBtn.disabled = true;
       nearest = null;
@@ -531,7 +858,7 @@
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
 
-    ctx.strokeStyle = samples ? ink.fg : ink.faint;
+    ctx.strokeStyle = samples ? (toneHex || ink.fg) : ink.faint;
     ctx.lineWidth = 2;
     ctx.beginPath();
     if (!samples) {
@@ -1020,9 +1347,9 @@
   /* ------------------------------------------------------------- init */
 
   function dialTicks() {
-    var labels = { 20: '20', 50: '50', 100: '100', 200: '200', 500: '500', 1000: '1k', 2000: '2k', 5000: '5k' };
+    var labels = { 20: '20', 50: '50', 100: '100', 200: '200', 500: '500', 1000: '1k', 2000: '2k', 5000: '5k', 10000: '10k', 20000: '20k' };
     var ticks = [];
-    [10, 100, 1000].forEach(function (decade) {
+    [10, 100, 1000, 10000].forEach(function (decade) {
       for (var k = 1; k <= 9; k++) {
         var f = decade * k;
         if (f < F.F_MIN || f > F.F_MAX) continue;
@@ -1033,14 +1360,17 @@
   }
 
   function init() {
-    ['status', 'statusText', 'themeBtn', 'keysBtn', 'keysDialog', 'keysClose',
+    ['colorBtn', 'toneSwatch', 'pulseOffer', 'pulseOn', 'pulseRate', 'mOmega', 'mOctaves', 'mLight', 'mSwatch',
+      'mEm', 'mEmNote', 'mCoil', 'mCap', 'mHarmonics', 'mIntervals', 'mIntervalText', 'mIntervalTune',
+      'mLissajous', 'mEarth', 'mCircuit',
+      'status', 'statusText', 'themeBtn', 'keysBtn', 'keysDialog', 'keysClose',
       'freqBig', 'noteName', 'noteCents', 'wavelength', 'period', 'ripple', 'dial', 'freqInput',
       'fineTrim', 'fineOut', 'scope', 'toneBtn', 'toneText', 'outState', 'volume', 'volumeOut',
       'ceiling', 'ceilingOut', 'meterFill', 'meterCeil', 'peakOut', 'lfGuard', 'guardNote',
       'swFrom', 'swTo', 'swRate', 'swGo', 'swReset', 'swFill', 'swHead', 'swTicks', 'swEta',
       'swState', 'swSpan', 'swHint', 'plate', 'simMode', 'simModeHz', 'simDelta', 'scatterBtn',
       'jumpBtn', 'plShape', 'plSideLabel', 'plSide', 'plThick', 'plMaterial', 'alignBtn', 'trimReset', 'trimOut',
-      'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond',
+      'life', 'lifeNow', 'lifeList', 'lifeScale', 'lifeBeyond', 'searchList', 'reportList', 'accountList', 'simNote',
       'pMedium', 'cameraBtn', 'cameraDialog', 'cameraClose', 'cameraVideo', 'cameraPick', 'cameraPickField',
       'cameraMsg', 'cameraShoot',
       'modeList', 'modeCount', 'sortBtn', 'exportBtn', 'importInput', 'logForm', 'formTitle',
@@ -1078,7 +1408,10 @@
     el.lfGuard.checked = state.lfGuard;
 
     buildLife();
+    buildMath();
+    el.pulseRate.value = state.pulseRate;
     applyTheme(state.theme);
+    applyColor(state.color);
     setView(state.view);
     setVolume(state.volume);
     setCeiling(state.ceilingDb);
@@ -1161,6 +1494,10 @@
 
     /* chrome */
     el.themeBtn.addEventListener('click', function () { applyTheme(state.theme === 'dark' ? 'light' : 'dark'); });
+    el.colorBtn.addEventListener('click', function () { applyColor(!state.color); });
+    el.pulseOn.addEventListener('change', applyPulse);
+    el.pulseRate.addEventListener('change', applyPulse);
+    el.pulseOffer.addEventListener('click', hearAsPulse);
     el.keysBtn.addEventListener('click', function () {
       if (el.keysDialog.showModal) el.keysDialog.showModal(); else el.keysDialog.setAttribute('open', '');
     });

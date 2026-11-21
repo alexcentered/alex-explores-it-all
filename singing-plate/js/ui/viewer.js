@@ -120,10 +120,18 @@
     this.controls.update();
   };
 
+  /* Colour the form itself; null returns it to the theme's neutral grey. */
+  Viewer.prototype.setTint = function (hex) {
+    if (!this.ok) return;
+    this._tint = hex || null;
+    this.material.color.set(this._tint || (this._light ? 0x8c8c8c : 0xdcdcdc));
+  };
+
   Viewer.prototype.setTheme = function (theme) {
     if (!this.ok) return;
     var light = theme === 'light';
-    this.material.color.set(light ? 0x8c8c8c : 0xdcdcdc);
+    this._light = light;
+    this.material.color.set(this._tint || (light ? 0x8c8c8c : 0xdcdcdc));
     this.hemi.groundColor.set(light ? 0x8a8a8a : 0x1a1a1a);
     this.hemi.intensity = light ? 0.9 : 0.55;
   };

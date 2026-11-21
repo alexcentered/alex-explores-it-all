@@ -234,6 +234,56 @@
     return { positions: positions, indices: indices };
   }
 
+  /* -------------------------------------------------------------- torus */
+
+  /*
+   * values: ringSeg x tubeSeg samples in -1..1, ring-major (see forms.torusValues).
+   * o.diameter  outer diameter of the undisturbed ring, mm
+   * o.aspect    tube radius as a fraction of ring radius
+   * o.amplitude how far the surface moves, as a fraction of the tube radius
+   * o.cut       depth sliced flat off the bottom so it sits on a bed, mm
+   */
+  function buildTorus(values, ringSeg, tubeSeg, o) {
+    var R = o.diameter / (2 * (1 + o.aspect));
+    var a = o.aspect * R;
+    var amp = clamp(o.amplitude, -0.7, 0.7);
+    var cut = Math.max(0, o.cut || 0);
+    var positions = new Float32Array(ringSeg * tubeSeg * 3);
+    var indices = new Uint32Array(ringSeg * tubeSeg * 6);
+    var i, j, p = 0, t = 0;
+
+    for (i = 0; i < ringSeg; i++) {
+      var phi = 2 * Math.PI * i / ringSeg;
+      var cphi = Math.cos(phi), sphi = Math.sin(phi);
+      for (j = 0; j < tubeSeg; j++) {
+        var theta = 2 * Math.PI * j / tubeSeg;
+        var r = a * Math.max(0.2, 1 + amp * values[i * tubeSeg + j]);
+        var ring = R + r * Math.cos(theta);
+        positions[p++] = ring * cphi;
+        positions[p++] = ring * sphi;
+        positions[p++] = r * Math.sin(theta);
+      }
+    }
+    // The surface closes on itself both ways, so every index wraps.
+    for (i = 0; i < ringSeg; i++) {
+      var i2 = (i + 1) % ringSeg;
+      for (j = 0; j < tubeSeg; j++) {
+        var j2 = (j + 1) % tubeSeg;
+        var v00 = i * tubeSeg + j, v10 = i2 * tubeSeg + j, v11 = i2 * tubeSeg + j2, v01 = i * tubeSeg + j2;
+        indices[t++] = v00; indices[t++] = v10; indices[t++] = v11;
+        indices[t++] = v00; indices[t++] = v11; indices[t++] = v01;
+      }
+    }
+
+    var zMin = Infinity;
+    for (p = 2; p < positions.length; p += 3) if (positions[p] < zMin) zMin = positions[p];
+    var floor = zMin + cut;
+    for (p = 2; p < positions.length; p += 3) {
+      positions[p] = (positions[p] < floor ? floor : positions[p]) - floor;
+    }
+    return { positions: positions, indices: indices };
+  }
+
   /* --------------------------------------------------------- isosurface */
 
   /*
@@ -584,6 +634,7 @@
     buildDisc: buildDisc,
     updateDisc: updateDisc,
     buildSphere: buildSphere,
+    buildTorus: buildTorus,
     isoSurface: isoSurface,
     buildRoom: buildRoom,
     inspect: inspect,

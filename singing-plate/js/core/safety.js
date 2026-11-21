@@ -24,6 +24,33 @@
   var LF_KNEE_HZ = 60;
 
   /*
+   * Above this, a tone is piercing at any useful level and hard on small
+   * speakers. Near the top of the range the operator may not hear it at all
+   * while children and animals still do. The console warns at both points.
+   */
+  var HF_CAUTION_HZ = 5000;
+  var HF_UNHEARD_HZ = 14000;
+
+  /*
+   * Below this the tone is infrasound: nobody hears it as a pitch, most
+   * speakers and many amplifiers cannot produce it at all, and a driver that
+   * can is making its longest strokes.
+   */
+  var INFRASOUND_HZ = 20;
+
+  function isInfrasound(freq) {
+    var f = Number(freq);
+    return f > 0 && f < INFRASOUND_HZ;
+  }
+
+  /* Which high-frequency warning applies, if any: '', 'piercing' or 'unheard'. */
+  function hfCaution(freq) {
+    var f = Number(freq);
+    if (!(f > HF_CAUTION_HZ)) return '';
+    return f >= HF_UNHEARD_HZ ? 'unheard' : 'piercing';
+  }
+
+  /*
    * At equal peak level a square wave carries twice the power of a sine.
    * Trim it 3 dB so switching waveform does not double the load on the driver.
    */
@@ -103,6 +130,11 @@
     DEFAULT_CEILING_DB: DEFAULT_CEILING_DB,
     DEFAULT_VOLUME: DEFAULT_VOLUME,
     LF_KNEE_HZ: LF_KNEE_HZ,
+    HF_CAUTION_HZ: HF_CAUTION_HZ,
+    HF_UNHEARD_HZ: HF_UNHEARD_HZ,
+    hfCaution: hfCaution,
+    INFRASOUND_HZ: INFRASOUND_HZ,
+    isInfrasound: isInfrasound,
     WAVE_TRIM: WAVE_TRIM,
     WAVEFORMS: WAVEFORMS,
     dbToLin: dbToLin,

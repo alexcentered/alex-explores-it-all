@@ -31,11 +31,13 @@
   <nav class="tabs" aria-label="Sections">
     <a href="index.html">Console</a>
     <a href="lab.html" aria-current="page">3D lab</a>
+    <a href="line.html">Line test</a>
   </nav>
   <div class="topbar-tools">
     <div class="status" id="status" data-state="standby" role="status" aria-live="polite">
       <span class="lamp" aria-hidden="true"></span><span id="statusText">Standby</span>
     </div>
+    <button class="btn ghost" id="colorBtn" type="button" aria-pressed="false" title="Show each frequency as the colour of light it would be, raised by octaves">Colour</button>
     <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
   </div>
 </header>
@@ -53,6 +55,7 @@
         <label><input type="radio" name="shape" value="disc"><span>Disc</span></label>
         <label><input type="radio" name="shape" value="sphere"><span>Sphere</span></label>
         <label><input type="radio" name="shape" value="room"><span>Room</span></label>
+        <label><input type="radio" name="shape" value="torus"><span>Torus</span></label>
       </div>
       <p class="hint" id="shapeHint"></p>
     </fieldset>
@@ -70,7 +73,7 @@
         <label class="label" for="labFreq">Frequency, Hz</label>
         <output class="label" id="labNote" for="labFreq">A4</output>
       </div>
-      <input class="input" id="labFreq" type="number" inputmode="decimal" min="20" max="5000" step="0.1" value="843.2">
+      <input class="input" id="labFreq" type="number" inputmode="decimal" min="1" max="20000" step="0.1" value="843.2">
       <input class="range" id="labFreqRange" type="range" min="0" max="1000" step="1" value="500" aria-label="Frequency slider">
       <p class="hint" id="freqHint" hidden></p>
     </div>
@@ -159,6 +162,14 @@
       </div>
     </div>
     <p class="hint" id="animHint"></p>
+
+    <details class="fold" open>
+      <summary>Predicted resonances <span class="dim" id="resCount"></span></summary>
+      <div class="sweep-track res-track" id="resTrack" aria-hidden="true"><div class="sweep-ticks" id="resTicks"></div><div class="sweep-head" id="resHead"></div></div>
+      <div class="chips" id="resList"></div>
+      <p class="hint" id="resHint"></p>
+    </details>
+
     <p class="hint">Drag to orbit, scroll or pinch to zoom, right-drag to pan. These are mathematical models of standing waves, not recordings: they show the idealised shape.</p>
   </section>
 
@@ -224,6 +235,7 @@
 <script src="js/core/chladni.js"></script>
 <script src="js/core/disc.js"></script>
 <script src="js/core/forms.js"></script>
+<script src="js/core/color.js"></script>
 <script src="js/core/mesh.js"></script>
 <script src="js/audio/engine.js"></script>
 <script src="js/store/presets.js"></script>
