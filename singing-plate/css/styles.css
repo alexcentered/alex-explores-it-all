@@ -789,22 +789,25 @@ a.entry-photo-link { display: block; border-radius: 9px; }
   margin: 0 auto;
   align-items: start;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "lines" "turn" "res" "brief";
+  grid-template-areas: "lines" "turn" "res" "pair" "brief";
 }
 .fields-lines { grid-area: lines; }
 .fields-turn { grid-area: turn; }
 .fields-res { grid-area: res; }
+.fields-pair { grid-area: pair; }
 .fields-brief { grid-area: brief; }
 @media (min-width: 1000px) {
   .fields-grid {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-    grid-template-areas: "lines turn" "res res" "brief brief";
+    grid-template-areas: "lines turn" "res res" "pair pair" "brief brief";
   }
 }
 
 .turn-screen { border: 1px solid var(--line); border-radius: 12px; background: var(--well); overflow: hidden; }
 .turn-screen canvas { display: block; width: 100%; height: clamp(240px, 34vw, 330px); }
 .turn-screen.strip canvas { height: 96px; }
+.turn-screen.strip.tall canvas { height: 150px; }
+.res-controls .btn.primary { align-self: flex-start; min-width: 150px; }
 .turn-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 
 .res-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }

@@ -1,20 +1,24 @@
 /*
  * ui/fields.js -- runs the Fields page.
  *
- * Three displays, each fed by core/fields.js: field lines in 3D, the
- * rotating field of two or three coils, and the resonance curve. Nothing
- * here makes sound.
+ * Four displays, each fed by core/fields.js: field lines in 3D, the
+ * rotating field of two or three coils, the resonance curve, and a pair of
+ * coupled tuned circuits. The only sound is the Strike buttons, which play
+ * a resonator's ring through the same limited output as the console.
  */
 (function (root) {
   'use strict';
 
   var SP = root.SP;
-  var fields = SP.fields, freq = SP.freq;
+  var fields = SP.fields, freq = SP.freq, safety = SP.safety;
   var CONSOLE_KEY = 'singing-plate:v1';
   var KEY = 'singing-plate:fields:v1';
   var TURN_SECONDS = 4;          // one turn of the field on screen
   var RATIO_SPAN = 4;            // the curve runs from 1/4 to 4 times the natural frequency
   var Q_MAX = 1000;
+  var K_MIN = 0.002, K_MAX = 0.5;
+  var PAIR_SPAN = 2;             // the pair's curve runs from half to twice the natural frequency
+  var MAX_SOUND_S = 6;
 
   function $(id) { return document.getElementById(id); }
 
@@ -26,8 +30,12 @@
   var state = {
     kind: 'both', twist: 0.3, flow: !reducedMotion,
     phases: 3, turning: !reducedMotion, supplyHz: 60, poles: 2,
-    f0: 440, q: 30, drive: 0            // drive: position on the slider, -1000 .. 1000
+    f0: 440, q: 30, drive: 0,           // drive: position on the slider, -1000 .. 1000
+    k: 0.1, volume: 0.25
   };
+  var strike = new SP.Strike();
+  var sounding = '';              // which Strike button is playing: '', 'one' or 'pair'
+  var ceilingDb = safety.DEFAULT_CEILING_DB;
   var viewer = null, view = null;
   var flowTime = 0, turnAngle = 0.6, last = 0;
   var linesDirty = true, plotsDirty = true;
@@ -55,6 +63,9 @@
     state.fromConsole = s.f0 === undefined && c.freq !== undefined;
     state.q = num(s.q, 1, Q_MAX, state.q);
     state.drive = num(s.drive, -1000, 1000, state.drive);
+    state.k = num(s.k, K_MIN, K_MAX, state.k);
+    state.volume = num(s.volume, 0, 1, state.volume);
+    if (c.ceilingDb !== undefined) ceilingDb = safety.sanitizeCeilingDb(c.ceilingDb);
     theme = c.theme === 'light' ? 'light' : 'dark';
   }
 
@@ -68,7 +79,7 @@
     try {
       localStorage.setItem(KEY, JSON.stringify({
         kind: state.kind, twist: state.twist, phases: state.phases, supplyHz: state.supplyHz,
-        poles: state.poles, q: state.q, drive: state.drive,
+        poles: state.poles, q: state.q, drive: state.drive, k: state.k, volume: state.volume,
         // until a natural frequency is typed here, keep following the console's
         f0: state.fromConsole ? undefined : state.f0
       }));
@@ -198,7 +209,11 @@
     arrow(ctx, cx, cy, cx + f.x * unit, cy - f.y * unit, 13);
     ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, 2 * Math.PI); ctx.fill();
 
-    el.strength.textContent = f.strength.toFixed(2) + ' × one coil';
+    renderStrength();
+  }
+
+  function renderStrength() {
+    el.strength.textContent = fields.rotatingField(state.phases, turnAngle).strength.toFixed(2) + ' × one coil';
   }
 
   function drawPhases() {
@@ -240,6 +255,7 @@
 
   function renderTurn() {
     el.turnCaption.textContent = TURN_TEXT[state.phases];
+    renderStrength();
     el.turnBtn.textContent = state.turning ? 'Pause' : 'Run';
     el.turnBtn.setAttribute('aria-pressed', state.turning ? 'true' : 'false');
     var rpm = fields.synchronousRpm(state.supplyHz, state.poles);
@@ -380,6 +396,10 @@
     el.f0Hint.textContent = state.fromConsole
       ? 'Taken from the console\'s frequency. Change it to anything from 1 Hz to 20 kHz.'
       : 'The frequency the resonator rings at when left alone.';
+    el.strikeHint.textContent = f0 < freq.HEARING_MIN
+      ? 'Below 20 Hz there is nothing to hear: raise the natural frequency to listen.'
+      : 'Hear it struck once and left to ring. A higher Q rings longer.';
+    renderPair();
     plotsDirty = true;
   }
 
@@ -387,6 +407,170 @@
     el.f0.value = Math.round(state.f0 * 10) / 10;
     el.q.value = qToSlider(state.q);
     el.drive.value = state.drive;
+    el.coupling.value = kToSlider(state.k);
+    el.volume.value = Math.round(state.volume * 100);
+  }
+
+  /* ------------------------------------------------ two tuned circuits */
+
+  function sliderToK(v) { return K_MIN * Math.pow(K_MAX / K_MIN, v / 300); }
+  function kToSlider(k) { return 300 * Math.log(k / K_MIN) / Math.log(K_MAX / K_MIN); }
+
+  /* How long the lower plot runs, in cycles: long enough to see the energy cross, or die trying. */
+  function swapSpan() {
+    var fade = 5 * state.q / Math.PI;                  // five ring times
+    return Math.max(4, Math.min(3 * fields.transferCycles(state.k), fade));
+  }
+
+  function renderPair() {
+    var q = state.q, f0 = state.f0, k = state.k;
+    var kc = fields.criticalCoupling(q);
+    var peaks = fields.coupledPeaks(f0, k);
+    var cross = fields.transferCycles(k);
+    el.couplingOut.textContent = k < 0.01 ? k.toFixed(4) : k.toFixed(3);
+    var split = k > kc * 1.02;
+    el.pairState.textContent = Math.abs(k / kc - 1) <= 0.02 ? 'Critical coupling'
+      : split ? 'Tightly coupled: two peaks' : 'Loosely coupled: one peak';
+    el.pairLow.textContent = fixed(peaks.lower) + ' Hz';
+    el.pairHigh.textContent = fixed(peaks.upper) + ' Hz';
+    el.pairCrit.textContent = 'k = ' + (kc < 0.01 ? kc.toFixed(4) : kc.toFixed(3));
+    el.pairCross.textContent = fixed(cross) + ' cycles · ' + seconds(cross / f0);
+    // the most the second circuit ever swings, as a share of what the first started with
+    var span = swapSpan(), most = 0;
+    for (var i = 0; i <= 400; i++) most = Math.max(most, fields.coupledEnvelope(q, k, span * i / 400).secondary);
+    el.pairArrives.textContent = Math.round(most * 100) + '%';
+    plotsDirty = true;
+  }
+
+  function drawPair() {
+    var c = prepare(el.pairCanvas), ctx = c.ctx;
+    var padL = 46, padR = 12, padT = 12, padB = 24;
+    var w = c.w - padL - padR, h = c.h - padT - padB;
+    var lo = Math.log10(0.03), hi = Math.log10(Q_MAX * 2);
+    var span = Math.log(PAIR_SPAN);
+    var f0 = state.f0, q = state.q, k = state.k;
+    function px(r) { return padL + (Math.log(r) / span + 1) / 2 * w; }
+    function py(g) { return padT + (1 - (Math.log10(Math.max(1e-6, g)) - lo) / (hi - lo)) * h; }
+
+    ctx.textBaseline = 'middle';
+    [0.1, 1, 10, 100, 1000].forEach(function (g) {
+      ctx.strokeStyle = ink.line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, py(g)); ctx.lineTo(padL + w, py(g)); ctx.stroke();
+      ctx.fillStyle = ink.mute; ctx.textAlign = 'right';
+      ctx.fillText('×' + g, padL - 8, py(g));
+    });
+    ctx.textBaseline = 'alphabetic';
+    [0.5, Math.SQRT1_2, 1, Math.SQRT2, 2].forEach(function (r, i) {
+      ctx.textAlign = i === 0 ? 'left' : i === 4 ? 'right' : 'center';
+      ctx.strokeStyle = ink.line;
+      ctx.beginPath(); ctx.moveTo(px(r), padT); ctx.lineTo(px(r), padT + h); ctx.stroke();
+      ctx.fillStyle = ink.mute;
+      ctx.fillText(fixed(f0 * r) + (i === 4 ? ' Hz' : ''), px(r), c.h - 7);
+    });
+
+    // Sharp peaks can fall between pixels, so the exact peak frequencies are always sampled too.
+    var peaks = fields.coupledPeaks(f0, k);
+    var xs = [1, peaks.lower / f0, peaks.upper / f0];
+    for (var x = 0; x <= w; x += 1) xs.push(Math.exp((x / w * 2 - 1) * span));
+    xs = xs.filter(function (r) { return r >= 1 / PAIR_SPAN && r <= PAIR_SPAN; }).sort(function (a, b) { return a - b; });
+    // curves that fall below the bottom of the scale run off the plot rather than along its floor
+    ctx.save();
+    ctx.beginPath(); ctx.rect(padL, padT, w, h); ctx.clip();
+    function curve(value) {
+      ctx.beginPath();
+      xs.forEach(function (r, i) {
+        var y = py(value(r));
+        if (i === 0) ctx.moveTo(px(r), y); else ctx.lineTo(px(r), y);
+      });
+      ctx.stroke();
+    }
+    ctx.strokeStyle = ink.faint; ctx.lineWidth = 1.2; ctx.setLineDash([4, 5]);
+    curve(function (r) { return fields.response(f0 * r, f0, q).gain; });
+    ctx.setLineDash([]);
+    ctx.strokeStyle = ink.mute; ctx.lineWidth = 1.2;
+    curve(function (r) { return fields.coupledResponse(f0 * r, f0, q, k).primary; });
+    ctx.strokeStyle = ink.fg; ctx.lineWidth = 2.2;
+    curve(function (r) { return fields.coupledResponse(f0 * r, f0, q, k).secondary; });
+    ctx.restore();
+
+    // the pair's two natural frequencies
+    ctx.fillStyle = ink.fg;
+    [peaks.lower / f0, peaks.upper / f0].forEach(function (r) {
+      if (r < 1 / PAIR_SPAN || r > PAIR_SPAN) return;
+      ctx.fillRect(px(r) - 1, padT + h - 8, 2, 8);
+    });
+  }
+
+  function drawSwap() {
+    var c = prepare(el.swapCanvas), ctx = c.ctx;
+    var padL = 12, padR = 12, padT = 10, padB = 22;
+    var w = c.w - padL - padR, h = c.h - padT - padB, mid = padT + h / 2, amp = h / 2 - 2;
+    var q = state.q, k = state.k, span = swapSpan();
+    var cross = fields.transferCycles(k);
+
+    ctx.strokeStyle = ink.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, mid); ctx.lineTo(padL + w, mid); ctx.stroke();
+
+    function envelope(which, sign) {
+      ctx.beginPath();
+      for (var x = 0; x <= w; x += 2) {
+        var y = mid - sign * amp * fields.coupledEnvelope(q, k, span * x / w)[which];
+        if (x === 0) ctx.moveTo(padL + x, y); else ctx.lineTo(padL + x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = ink.mute; ctx.lineWidth = 1.4; ctx.setLineDash([5, 5]);
+    envelope('primary', 1); envelope('primary', -1);
+    ctx.setLineDash([]);
+
+    // the second circuit: its oscillation when there is room to draw it, and always its outline
+    if (span <= w / 12) {
+      ctx.strokeStyle = ink.faint; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (var x = 0; x <= w; x += 0.5) {
+        var y = mid - amp * fields.coupledRing(q, k, span * x / w).secondary;
+        if (x === 0) ctx.moveTo(padL + x, y); else ctx.lineTo(padL + x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = ink.fg; ctx.lineWidth = 2.2;
+    envelope('secondary', 1); envelope('secondary', -1);
+
+    ctx.fillStyle = ink.mute; ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left'; ctx.fillText('0', padL, c.h - 6);
+    ctx.textAlign = 'right'; ctx.fillText(seconds(span / state.f0), padL + w, c.h - 6);
+    if (cross < span) {
+      var cx = padL + cross / span * w;
+      ctx.strokeStyle = ink.mute; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+      ctx.beginPath(); ctx.moveTo(cx, padT); ctx.lineTo(cx, padT + h); ctx.stroke();
+      ctx.setLineDash([]);
+      if (cx > padL + 50 && cx < padL + w - 110) {      // leave it out where it would sit on an end label
+        ctx.textAlign = 'center';
+        ctx.fillText(seconds(cross / state.f0), cx, c.h - 6);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------- sound */
+
+  function renderSound() {
+    el.volumeOut.textContent = Math.round(state.volume * 100) + '%';
+    el.strikeBtn.textContent = sounding === 'one' ? 'Stop' : 'Strike';
+    el.pairStrikeBtn.textContent = sounding === 'pair' ? 'Stop' : 'Strike the first';
+    el.strikeBtn.setAttribute('aria-pressed', sounding === 'one' ? 'true' : 'false');
+    el.pairStrikeBtn.setAttribute('aria-pressed', sounding === 'pair' ? 'true' : 'false');
+  }
+
+  function strikeNow(which) {
+    if (sounding === which) { strike.stop(); return; }
+    if (!SP.Strike.isSupported()) return;
+    var rate = strike.sampleRate();
+    var samples = which === 'pair'
+      ? fields.coupledSamples(state.f0, state.q, state.k, rate, MAX_SOUND_S)
+      : fields.ringSamples(state.f0, state.q, rate, MAX_SOUND_S);
+    strike.play({ samples: samples, freq: state.f0, volume: state.volume, ceilingDb: ceilingDb });
+    sounding = which;
+    renderSound();
   }
 
   /* -------------------------------------------------------------- loop */
@@ -402,7 +586,7 @@
     }
     if (state.turning) turnAngle += dt * 2 * Math.PI / TURN_SECONDS;
     if (state.turning || plotsDirty) { drawTurn(); drawPhases(); }
-    if (plotsDirty) { drawResonance(); drawLag(); plotsDirty = false; }
+    if (plotsDirty) { drawResonance(); drawLag(); drawPair(); drawSwap(); plotsDirty = false; }
     root.requestAnimationFrame(frame);
   }
 
@@ -438,7 +622,9 @@
     ['themeBtn', 'stage', 'stageMsg', 'kindCaption', 'kindHint', 'flowBtn', 'viewReset', 'twistField', 'twist', 'twistOut',
       'turnCanvas', 'phaseCanvas', 'turnCaption', 'turnBtn', 'supplyHz', 'poles', 'rpm', 'rps', 'strength', 'slowed',
       'resState', 'f0', 'f0Hint', 'q', 'qOut', 'drive', 'driveOut', 'edgeLow', 'atPeak', 'edgeHigh',
-      'resCanvas', 'lagCanvas', 'gain', 'lag', 'bw', 'ring', 'cycles'
+      'resCanvas', 'lagCanvas', 'gain', 'lag', 'bw', 'ring', 'cycles',
+      'volume', 'volumeOut', 'strikeBtn', 'strikeHint', 'pairState', 'coupling', 'couplingOut', 'looseBtn', 'criticalBtn',
+      'tightBtn', 'pairStrikeBtn', 'pairCanvas', 'swapCanvas', 'pairLow', 'pairHigh', 'pairCrit', 'pairCross', 'pairArrives'
     ].forEach(function (id) { el[id] = $(id); });
 
     load();
@@ -458,7 +644,7 @@
     syncResonanceControls();
 
     applyTheme(theme);
-    renderKind(); renderFlow(); renderTurn(); renderResonance();
+    renderKind(); renderFlow(); renderTurn(); renderResonance(); renderSound();
 
     document.querySelectorAll('input[name="kind"]').forEach(function (r) {
       r.addEventListener('change', function () { state.kind = r.value; renderKind(); save(); });
@@ -509,6 +695,30 @@
     el.edgeLow.addEventListener('click', function () { driveTo(Math.max(1 / RATIO_SPAN, 1 - 1 / (2 * state.q))); });
     el.edgeHigh.addEventListener('click', function () { driveTo(1 + 1 / (2 * state.q)); });
 
+    el.coupling.addEventListener('input', function () {
+      state.k = Math.min(K_MAX, Math.max(K_MIN, sliderToK(Number(el.coupling.value))));
+      renderPair(); save();
+    });
+    function coupleTo(k) {
+      state.k = Math.min(K_MAX, Math.max(K_MIN, k));
+      el.coupling.value = kToSlider(state.k);
+      renderPair(); save();
+    }
+    el.looseBtn.addEventListener('click', function () { coupleTo(fields.criticalCoupling(state.q) / 3); });
+    el.criticalBtn.addEventListener('click', function () { coupleTo(fields.criticalCoupling(state.q)); });
+    el.tightBtn.addEventListener('click', function () { coupleTo(fields.criticalCoupling(state.q) * 5); });
+
+    el.volume.addEventListener('input', function () {
+      state.volume = num(Number(el.volume.value) / 100, 0, 1, state.volume);
+      renderSound(); save();
+    });
+    strike.onend = function () { sounding = ''; renderSound(); };
+    el.strikeBtn.addEventListener('click', function () { strikeNow('one'); });
+    el.pairStrikeBtn.addEventListener('click', function () { strikeNow('pair'); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sounding) { strike.stop(); e.preventDefault(); }
+    });
+
     el.themeBtn.addEventListener('click', function () {
       applyTheme(theme === 'dark' ? 'light' : 'dark');
       try {
@@ -523,7 +733,7 @@
       new ResizeObserver(function () { plotsDirty = true; }).observe(el.resCanvas);
       new ResizeObserver(function () { plotsDirty = true; }).observe(el.turnCanvas);
     }
-    root.addEventListener('pagehide', flush);
+    root.addEventListener('pagehide', function () { strike.stop(); flush(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) flush(); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { plotsDirty = true; });
 
@@ -536,7 +746,11 @@
   // Exposed for debugging from the browser console; not a public API.
   SP.fieldsPage = {
     current: function () {
-      return { state: state, turnAngle: turnAngle, flowTime: flowTime, segments: view ? view.count : 0, webgl: !!(viewer && viewer.ok) };
-    }
+      return {
+        state: state, turnAngle: turnAngle, flowTime: flowTime, segments: view ? view.count : 0,
+        webgl: !!(viewer && viewer.ok), sounding: sounding, soundSeconds: strike.duration || 0
+      };
+    },
+    strike: strike
   };
 })(typeof self !== 'undefined' ? self : this);

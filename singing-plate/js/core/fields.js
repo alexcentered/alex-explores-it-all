@@ -1,7 +1,7 @@
 /*
- * core/fields.js -- magnetic fields, a rotating field, and the resonance curve.
+ * core/fields.js -- magnetic fields, a rotating field, resonance, coupled circuits.
  *
- * Three pieces of physics for the Fields page.
+ * Four pieces of physics for the Fields page.
  *
  * 1. Field lines round a ring.
  *    A current flowing round a ring makes a magnetic field that loops
@@ -25,6 +25,11 @@
  *    How strongly anything that can ring (a plate, a tuned circuit, a
  *    bridge) responds when driven at a frequency near its own. Q measures
  *    how sharp the peak is.
+ *
+ * 4. Two tuned circuits.
+ *    Two matched resonators whose coils share some magnetic field pass
+ *    their energy back and forth, and their one peak becomes two. This is
+ *    how a Tesla coil's primary feeds its secondary.
  *
  * Lengths are in units of the ring radius; field strength is relative.
  * Pure functions only.
@@ -288,7 +293,133 @@
     return Q / (Math.PI * f0);
   }
 
+  /*
+   * The sound of a resonator struck once and left alone: a sine at its
+   * natural frequency, fading at the rate its Q sets. Peak value 1.
+   * Returns Float32Array samples; never longer than maxSeconds.
+   */
+  function ringSamples(f0, Q, sampleRate, maxSeconds) {
+    var tau = ringTime(f0, Q);
+    var seconds = Math.min(maxSeconds || 6, Math.max(0.06, 6.9 * tau));     // 6.9 time constants is -60 dB
+    var n = Math.max(1, Math.round(seconds * sampleRate));
+    var out = new Float32Array(n);
+    var w = 2 * Math.PI * f0 * Math.sqrt(Math.max(0, 1 - 1 / (4 * Q * Q)));  // loss lowers the pitch a hair
+    var fade = Math.min(n, Math.round(0.01 * sampleRate));
+    for (var i = 0; i < n; i++) {
+      var t = i / sampleRate;
+      out[i] = Math.exp(-t / tau) * Math.sin(w * t);
+      if (i >= n - fade) out[i] *= (n - 1 - i) / fade;                      // end on silence, not a step
+    }
+    return out;
+  }
+
+  /* -------------------------------------------------- two tuned circuits */
+
+  /*
+   * Two identical tuned circuits whose coils share some of their magnetic
+   * field: the heart of a Tesla coil. k is the coupling, the fraction of
+   * the field they share, from 0 (none) to 1 (all of it).
+   *
+   * Together they have two natural frequencies, not one. In the lower the
+   * two currents run in step; in the upper they run opposed.
+   */
+  function coupledPeaks(f0, k) {
+    var c = clampCoupling(k);
+    return { lower: f0 / Math.sqrt(1 + c), upper: f0 / Math.sqrt(1 - c) };
+  }
+
+  function clampCoupling(k) {
+    k = Number(k);
+    return isFinite(k) ? Math.min(0.9, Math.max(0, k)) : 0;
+  }
+
+  /* The coupling at which one peak begins to split into two: 1 / Q. */
+  function criticalCoupling(Q) {
+    return 1 / Q;
+  }
+
+  /*
+   * Driven at the first circuit: the voltage across each circuit's
+   * capacitor, relative to the drive. With no coupling the first is the
+   * lone resonator of response() above and the second is still.
+   * From the two circuit equations with a shared-field term between them.
+   */
+  function coupledResponse(freq, f0, Q, k) {
+    var x = freq / f0, c = clampCoupling(k);
+    var zr = 1 / Q, zi = x - 1 / x;                   // one circuit's impedance, real and imaginary parts
+    // denominator: z * z + (x k)^2
+    var dr = zr * zr - zi * zi + x * x * c * c, di = 2 * zr * zi;
+    var d = Math.sqrt(dr * dr + di * di);
+    return {
+      primary: Math.sqrt(zr * zr + zi * zi) / (x * d),
+      secondary: c / d
+    };
+  }
+
+  /*
+   * Charge the first circuit, let go, and watch. The pair splits exactly
+   * into its two natural motions, each a fading sine, so there is a closed
+   * form: no step-by-step simulation needed.
+   *   t    time in cycles of the natural frequency
+   * Returns the voltage on each capacitor, starting from 1 and 0.
+   */
+  function modeAt(Q, sign, k, t) {
+    var w = 1 / Math.sqrt(1 + sign * k);              // this motion's frequency, natural frequency = 1
+    var a = 1 / (2 * Q * (1 + sign * k));             // and how fast it fades
+    var wd = Math.sqrt(Math.max(1e-12, w * w - a * a));
+    var tau = 2 * Math.PI * t;
+    return Math.exp(-a * tau) * (Math.cos(wd * tau) + a / wd * Math.sin(wd * tau));
+  }
+
+  function coupledRing(Q, k, t) {
+    var c = clampCoupling(k);
+    var together = modeAt(Q, 1, c, t), opposed = modeAt(Q, -1, c, t);
+    return { primary: (together + opposed) / 2, secondary: (together - opposed) / 2 };
+  }
+
+  /* The size of each circuit's swing at time t, with the fast oscillation left out. */
+  function coupledEnvelope(Q, k, t) {
+    var c = clampCoupling(k);
+    var tau = 2 * Math.PI * t;
+    var a = Math.exp(-tau / (2 * Q * (1 + c))), b = Math.exp(-tau / (2 * Q * (1 - c)));
+    var beat = Math.cos((1 / Math.sqrt(1 - c) - 1 / Math.sqrt(1 + c)) * tau);
+    return {
+      primary: Math.sqrt(Math.max(0, a * a + b * b + 2 * a * b * beat)) / 2,
+      secondary: Math.sqrt(Math.max(0, a * a + b * b - 2 * a * b * beat)) / 2
+    };
+  }
+
+  /* Cycles of the natural frequency for the energy to cross from the first circuit to the second. */
+  function transferCycles(k) {
+    var c = clampCoupling(k);
+    if (!(c > 0)) return Infinity;
+    return 1 / (2 * (1 / Math.sqrt(1 - c) - 1 / Math.sqrt(1 + c)));
+  }
+
+  /* The second circuit's voltage after the first is struck, as sound. Peak value at most 1. */
+  function coupledSamples(f0, Q, k, sampleRate, maxSeconds) {
+    var tau = ringTime(f0, Q);
+    var cross = transferCycles(k) / f0;
+    var seconds = Math.min(maxSeconds || 6, Math.max(0.06, Math.min(6.9 * tau * 1.3, 6.9 * tau + 2 * cross)));
+    var n = Math.max(1, Math.round(seconds * sampleRate));
+    var out = new Float32Array(n);
+    var fade = Math.min(n, Math.round(0.01 * sampleRate));
+    for (var i = 0; i < n; i++) {
+      out[i] = coupledRing(Q, k, i / sampleRate * f0).secondary;
+      if (i >= n - fade) out[i] *= (n - 1 - i) / fade;
+    }
+    return out;
+  }
+
   var api = {
+    ringSamples: ringSamples,
+    coupledPeaks: coupledPeaks,
+    criticalCoupling: criticalCoupling,
+    coupledResponse: coupledResponse,
+    coupledRing: coupledRing,
+    coupledEnvelope: coupledEnvelope,
+    transferCycles: transferCycles,
+    coupledSamples: coupledSamples,
     TUBE: TUBE,
     RING_BOUND: RING_BOUND,
     loopField: loopField,
