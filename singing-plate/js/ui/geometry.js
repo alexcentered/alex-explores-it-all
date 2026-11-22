@@ -8,12 +8,15 @@
   'use strict';
 
   var SP = root.SP;
-  var solids = SP.solids, ancient = SP.ancient, freq = SP.freq, safety = SP.safety;
+  var solids = SP.solids, growth = SP.growth, ancient = SP.ancient, freq = SP.freq, safety = SP.safety;
   var CONSOLE_KEY = 'singing-plate:v1';
   var KEY = 'singing-plate:geometry:v1';
   var HEAR_MS = 3000;
   var SWING_SECONDS = 3.2;       // one full swing of the wave on screen
   var BALL_LEVEL = 4;            // 5,120 triangles: smooth, and light enough to reshape every frame
+  var SPARK_GRID = 121;          // cells along each side of the spark's grid
+  var SPARK_PER_FRAME = 8;       // steps of growth per frame of animation
+  var SPARK = { id: 'spark', name: 'Spark' };
 
   // The three waves, lowest first, each named for the pair of solids it joins.
   var WAVES = [
@@ -28,7 +31,8 @@
   var theme = 'dark';
   var ceilingDb = safety.DEFAULT_CEILING_DB;
   var reducedMotion = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var state = { item: 'cube', view: 'both', moving: !reducedMotion, depth: { sierpinski: 3, menger: 2 }, radius: 1, volume: 0.25 };
+  var state = { item: 'cube', view: 'both', moving: !reducedMotion, depth: { sierpinski: 3, menger: 2 }, radius: 1, volume: 0.25, spark: { shape: 'point', eta: 1 } };
+  var spark = null, sparkSeed = 1, sparkShown = -1;
   var viewer = null, view = null, ball = null;
   var duo = new SP.Duo();
   var sounding = '', soundTimer = null;
@@ -45,7 +49,7 @@
     return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback;
   }
 
-  function known(id) { return !!(solids.find(id) || solids.findFractal(id)); }
+  function known(id) { return !!(solids.find(id) || solids.findFractal(id)) || id === SPARK.id; }
 
   function load() {
     var s = readJson(KEY), c = readJson(CONSOLE_KEY);
@@ -54,6 +58,10 @@
     if (s.depth) {
       state.depth.sierpinski = Math.round(num(s.depth.sierpinski, 0, 6, 3));
       state.depth.menger = Math.round(num(s.depth.menger, 0, 3, 2));
+    }
+    if (s.spark) {
+      state.spark.shape = s.spark.shape === 'plane' ? 'plane' : 'point';
+      state.spark.eta = Math.round(num(s.spark.eta, 0, 4, 1) * 2) / 2;
     }
     state.radius = num(s.radius, 0.5, 5, state.radius);
     state.volume = num(s.volume, 0, 1, state.volume);
@@ -65,7 +73,7 @@
 
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ item: state.item, view: state.view, depth: state.depth, radius: state.radius, volume: state.volume }));
+      localStorage.setItem(KEY, JSON.stringify({ item: state.item, view: state.view, depth: state.depth, radius: state.radius, volume: state.volume, spark: state.spark }));
     } catch (e) { /* not fatal */ }
   }
 
@@ -141,7 +149,9 @@
       });
     }
     fill(el.solidList, solids.SOLIDS, function (s) { return s.F + ' ' + s.faceName; });
-    fill(el.fractalList, solids.FRACTALS, function (f) { return 'Dimension ' + solids.dimension(f.copies, f.shrink).toFixed(2); });
+    fill(el.fractalList, solids.FRACTALS.concat([SPARK]), function (f) {
+      return f.id === SPARK.id ? 'Grown, not drawn' : 'Dimension ' + solids.dimension(f.copies, f.shrink).toFixed(2);
+    });
   }
 
   function choose(id) {
@@ -159,8 +169,23 @@
       b.setAttribute('aria-checked', b.dataset.id === state.item ? 'true' : 'false');
     });
     var solid = solids.find(state.item);
-    if (solid) renderSolid(solid); else renderFractal(solids.findFractal(state.item));
-    if (resetCamera && viewer && viewer.ok) viewer.resetView();
+    el.sparkBlock.hidden = state.item !== SPARK.id;
+    if (state.item !== SPARK.id) spark = null;
+    if (solid) renderSolid(solid);
+    else if (state.item === SPARK.id) renderSpark(true);
+    else renderFractal(solids.findFractal(state.item));
+    el.soundPanel.hidden = !solid;            // the three waves belong to the solids
+    if (resetCamera) resetView();
+  }
+
+  /* The solids are seen from a corner; the spark is flat, so it is faced nearly square on. */
+  function resetView() {
+    if (!viewer || !viewer.ok) return;
+    viewer.resetView();
+    if (state.item === SPARK.id) {
+      viewer.camera.position.set(0.9, -4.2, 0.45);
+      viewer.controls.update();
+    }
   }
 
   function renderSolid(solid) {
@@ -307,6 +332,73 @@
     }
   }
 
+  /* ------------------------------------------------------------- spark */
+
+  var ETA_TEXT = [
+    [0, 'Ignores the field: every edge cell is equally likely, and it grows as a solid blob.'],
+    [0.5, 'Barely follows the field: thick and bushy.'],
+    [1, 'The standard rule: chance in step with the field. Published dimension about 1.7 when grown from a point.'],
+    [2, 'Follows the field closely: fewer, longer branches. Nearer to how lightning looks.'],
+    [3, 'Follows the field very closely: little more than one channel with twigs.']
+  ];
+
+  function etaText(eta) {
+    var text = ETA_TEXT[0][1];
+    ETA_TEXT.forEach(function (row) { if (eta >= row[0]) text = row[1]; });
+    return text;
+  }
+
+  /* fresh: start a new spark. Otherwise only the readouts are brought up to date. */
+  function renderSpark(fresh) {
+    var sp = state.spark;
+    if (fresh) {
+      spark = growth.create({ n: SPARK_GRID, shape: sp.shape, eta: sp.eta, seed: sparkSeed, maxCells: 4000 });
+      sparkShown = -1;
+      if (reducedMotion) growth.grow(spark, 1e9);      // no animation asked for: show it finished
+      if (view && view.ok) { view.clear(); view.addElectrode(sp.shape); }
+    }
+    el.viewTitle.textContent = SPARK.name;
+    el.viewSeg.hidden = true;
+    el.moveBtn.hidden = true;
+    el.depthBlock.hidden = true;
+    el.waveBlock.hidden = true;
+    el.fractalBlock.hidden = false;
+    el.waveTitle.textContent = 'Growth';
+    var r = document.querySelector('input[name="sparkShape"][value="' + sp.shape + '"]');
+    if (r) r.checked = true;
+    el.eta.value = sp.eta;
+    el.etaOut.textContent = sp.eta.toFixed(1);
+    el.etaHint.textContent = etaText(sp.eta);
+
+    el.factList.textContent = '';
+    fact(el.factList, 'Made by', 'Growth, one step at a time');
+    fact(el.factList, 'Each step', 'Chance in proportion to (voltage at the edge) ^ η. The slider under the picture sets η.');
+    fact(el.factList, 'Then', 'The voltage everywhere is worked out again');
+    fact(el.factList, 'Model', 'Dielectric breakdown (Niemeyer, Pietronero and Wiesmann, 1984)');
+    el.noteText.textContent = '';
+    el.noteText.appendChild(make('p', '', 'A discharge spreading from a point toward a ring electrode, or from a cloud toward the ground. The faint line is the electrode. Stronger lines carry more of the pattern beyond them, as the trunk of a real discharge carries more current.'));
+    el.noteText.appendChild(make('h3', 'label', 'Where it turns up'));
+    el.noteText.appendChild(make('p', '', 'Lightning, the streamers from a Tesla coil, and Lichtenberg figures: the branching trees a spark burns into plastic or leaves on the skin.'));
+    el.fractalOdd.textContent = 'Unlike the two fractals above, this one is not built from exact copies of itself, and no two are alike. It is self-similar on average: a branch looks statistically like the whole.';
+    renderSparkFacts();
+  }
+
+  function renderSparkFacts() {
+    if (!spark) return;
+    var steps = spark.order.length - 1, d = growth.dimension(spark);
+    sparkShown = spark.order.length;
+    el.viewCaption.textContent = steps.toLocaleString('en-US') + (steps === 1 ? ' step.' : ' steps.');
+    el.sparkState.textContent = !spark.done ? 'Growing…' : spark.reached ? 'Reached the electrode.' : 'Stopped at ' + steps.toLocaleString('en-US') + ' steps.';
+    el.fractalFacts.textContent = '';
+    fact(el.fractalFacts, 'Steps', steps.toLocaleString('en-US'));
+    fact(el.fractalFacts, 'Dimension', isNaN(d) ? 'Too small to measure yet' : d.toFixed(2) + ' for this one, so far');
+    fact(el.fractalFacts, 'Published', 'About ' + growth.PUBLISHED_DIMENSION + ' for η = 1 grown from a point');
+    fact(el.fractalFacts, 'Measured by', state.spark.shape === 'point'
+      ? 'Counting cells within each distance of the start'
+      : 'The same count, which is rougher for a spark that starts at an edge');
+    if (view && view.ok) view.setSpark(growth.bonds(spark));
+  }
+
   function renderMove() {
     el.moveBtn.textContent = state.moving ? 'Freeze' : 'Move';
     el.moveBtn.setAttribute('aria-pressed', state.moving ? 'true' : 'false');
@@ -336,8 +428,13 @@
         swing += dt * 2 * Math.PI / SWING_SECONDS;
         view.setSwing(Math.cos(swing));
       }
-      viewer.render();
     }
+    if (spark && state.item === SPARK.id) {
+      var growing = !spark.done;
+      if (growing) growth.grow(spark, SPARK_PER_FRAME);
+      if (growing || spark.order.length !== sparkShown) renderSparkFacts();
+    }
+    if (viewer && viewer.ok) viewer.render();
     root.requestAnimationFrame(frame);
   }
 
@@ -353,6 +450,7 @@
     if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
     if (viewer) viewer.setTheme(theme);
     if (view) view.setTheme(theme);
+    if (spark && view && view.ok) view.setSpark(growth.bonds(spark));     // its shading depends on the theme
   }
 
   /* -------------------------------------------------------------- init */
@@ -360,7 +458,8 @@
   function init() {
     ['themeBtn', 'solidList', 'fractalList', 'factList', 'noteText', 'viewTitle', 'viewSeg', 'viewReset', 'stage', 'stageMsg',
       'viewCaption', 'moveBtn', 'depthBlock', 'depth', 'depthOut', 'depthHint', 'waveTitle', 'waveBlock', 'waveText', 'radius',
-      'radiusOut', 'waveList', 'fractalBlock', 'fractalFacts', 'fractalOdd', 'betweenList', 'volume', 'volumeOut', 'fiveTable'
+      'radiusOut', 'waveList', 'fractalBlock', 'fractalFacts', 'fractalOdd', 'betweenList', 'volume', 'volumeOut', 'fiveTable',
+      'sparkBlock', 'eta', 'etaOut', 'etaHint', 'sparkAgain', 'sparkState', 'soundPanel'
     ].forEach(function (id) { el[id] = $(id); });
 
     load();
@@ -387,7 +486,7 @@
     document.querySelectorAll('input[name="view"]').forEach(function (input) {
       input.addEventListener('change', function () { state.view = input.value; render(false); save(); });
     });
-    el.viewReset.addEventListener('click', function () { viewer.resetView(); });
+    el.viewReset.addEventListener('click', resetView);
     el.moveBtn.addEventListener('click', function () {
       state.moving = !state.moving;
       // frozen, the wave is held at the top of its swing, where it matches the bright cage
@@ -400,6 +499,14 @@
       state.depth[f.id] = Math.round(num(el.depth.value, 0, f.maxDepth, 0));
       renderFractal(f); save();
     });
+    document.querySelectorAll('input[name="sparkShape"]').forEach(function (input) {
+      input.addEventListener('change', function () { state.spark.shape = input.value; renderSpark(true); save(); });
+    });
+    el.eta.addEventListener('input', function () {
+      state.spark.eta = Math.round(num(el.eta.value, 0, 4, 1) * 2) / 2;
+      renderSpark(true); save();
+    });
+    el.sparkAgain.addEventListener('click', function () { sparkSeed += 1; renderSpark(true); });
     el.radius.addEventListener('input', function () {
       state.radius = num(el.radius.value, 0.5, 5, state.radius);
       stopSound();
@@ -437,7 +544,11 @@
   // Exposed for debugging from the browser console; not a public API.
   SP.geometryPage = {
     current: function () {
-      return { state: state, swing: swing, sounding: sounding, webgl: !!(viewer && viewer.ok), shapes: view && view.ok ? view.group.children.length : 0 };
+      return {
+        state: state, swing: swing, sounding: sounding, webgl: !!(viewer && viewer.ok),
+        shapes: view && view.ok ? view.group.children.length : 0,
+        spark: spark ? { cells: spark.order.length, done: spark.done, reached: spark.reached, seed: spark.seed, eta: spark.eta, shape: spark.shape, dimension: growth.dimension(spark) } : null
+      };
     },
     duo: duo
   };

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Singing Plate | Geometry</title>
-<meta name="description" content="The five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, and two fractals.">
+<meta name="description" content="The five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, two fractals, and a spark that grows itself.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#060607">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -48,7 +48,7 @@
     <div class="panel-head"><h2 id="pickTitle">Form</h2></div>
     <p class="label">The five Platonic solids</p>
     <div class="pick-list" id="solidList" role="radiogroup" aria-label="Platonic solid"></div>
-    <p class="label">Two fractals</p>
+    <p class="label">Fractals</p>
     <div class="pick-list" id="fractalList" role="radiogroup" aria-label="Fractal"></div>
 
     <dl class="pick-facts" id="factList"></dl>
@@ -77,6 +77,28 @@
       <p class="value" id="viewCaption"></p>
       <div class="btn-row">
         <button class="btn" id="moveBtn" type="button" aria-pressed="true">Freeze</button>
+      </div>
+    </div>
+
+    <div class="mode-block" id="sparkBlock" hidden>
+      <div class="field seg-field">
+        <span class="label" id="sparkShapeLabel">Where it starts</span>
+        <div class="seg small" id="sparkShape" role="group" aria-labelledby="sparkShapeLabel">
+          <label><input type="radio" name="sparkShape" value="point" checked><span>From a point</span></label>
+          <label><input type="radio" name="sparkShape" value="plane"><span>Cloud to ground</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-head">
+          <label class="label" for="eta">How closely it follows the field</label>
+          <output class="label" id="etaOut" for="eta"></output>
+        </div>
+        <input class="range" id="eta" type="range" min="0" max="4" step="0.5" value="1">
+        <p class="hint" id="etaHint"></p>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="sparkAgain" type="button">Grow another</button>
+        <span class="hint" id="sparkState" role="status"></span>
       </div>
     </div>
 
@@ -117,7 +139,7 @@
   </section>
 
   <!-- ================================================================ SOUND -->
-  <section class="panel ancient-sound" aria-labelledby="soundTitle">
+  <section class="panel ancient-sound" id="soundPanel" aria-labelledby="soundTitle">
     <div class="panel-head"><h2 id="soundTitle">Between the three waves</h2></div>
     <ul class="sound-list" id="betweenList"></ul>
     <div class="field">
@@ -148,10 +170,12 @@
       <p>This is why the same few symmetries turn up in crystals, viruses, drops and molecules. They are the arrangements that are possible for a round thing, whatever it is made of.</p>
       <h3 class="label">Fractals</h3>
       <p>A fractal is made of smaller copies of itself. If a shape is made of N copies each s times smaller, its dimension is log N ÷ log s. For a line, square or cube that gives 1, 2 or 3. For a fractal it gives something in between. Coastlines, lungs, river networks and lightning are rough fractals over a range of sizes: they branch or wrinkle the same way at each scale. The sand lines on a plate are not; they are smooth curves.</p>
+      <h3 class="label">The spark</h3>
+      <p>The first two fractals are drawn by a rule. The spark is grown. It advances one short step at a time, more often where the electric field at its edge is stronger, and the field is worked out again after every step. Nothing in the rule mentions branching; the branches come from the way a sharp tip concentrates the field and so tends to grow, while the gaps between tips are shielded and tend not to. Lightning, the streamers from a Tesla coil and the figures a spark burns into plastic form this way. Grown from a point with the standard rule, the published dimension is about 1.7, and the page measures each one it grows.</p>
       <h3 class="label">History, kept separate from physics</h3>
       <p>Plato, in the Timaeus about 360 BC, gave four of the solids to the elements (fire, earth, air, water) and the fifth to the cosmos. That is philosophy, and it is shown here as his assignment and nothing more. In 1596 Kepler tried to explain the spacing of the planets by nesting the five solids inside each other. It does not fit the measurements, and he later found the laws that do.</p>
       <h3 class="label">What is not here</h3>
-      <p>Only the lowest symmetric wave is shown for each solid; higher ones exist. The fractals stop after a few steps, because every step multiplies the number of pieces. Plasma and lightning are not simulated.</p>
+      <p>Only the lowest symmetric wave is shown for each solid; higher ones exist. The fractals stop after a few steps, because every step multiplies the number of pieces. The spark is a flat, idealised model: real lightning is three-dimensional, and its heating, stepped leaders and return strokes are left out.</p>
     </div>
   </section>
 </main>
@@ -162,6 +186,7 @@
 <script src="js/core/safety.js"></script>
 <script src="js/core/ancient.js"></script>
 <script src="js/core/solids.js"></script>
+<script src="js/core/growth.js"></script>
 <script src="js/audio/duo.js"></script>
 <script src="vendor/three.bundle.js"></script>
 <script src="js/ui/viewer.js"></script>

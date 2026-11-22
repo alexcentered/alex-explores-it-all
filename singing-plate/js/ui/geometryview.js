@@ -28,6 +28,7 @@
     // they pass inside the bulging surface and would otherwise be hidden.
     this.edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false });
     this.dualMaterial = new THREE.LineBasicMaterial({ color: 0x777777, depthTest: false });
+    this.sparkMaterial = new THREE.LineBasicMaterial({ vertexColors: true });
     this.group.scale.setScalar(0.82);
   }
 
@@ -39,6 +40,7 @@
       child.geometry.dispose();
     }
     this.wave = null;
+    this.spark = null;
   };
 
   /* A flat-faced mesh: { positions, indices }. */
@@ -88,6 +90,47 @@
     }
     attr.needsUpdate = true;
     w.geometry.computeVertexNormals();
+  };
+
+  /*
+   * A flat branching pattern, stood upright.
+   *   bonds   { positions: x y pairs in -1 .. 1, share: 0 .. 1 per segment } from SP.growth.bonds()
+   * Segments carrying more of the pattern are drawn stronger, as the trunk
+   * of a real discharge carries more current. Replaces any earlier spark.
+   */
+  GeometryView.prototype.setSpark = function (bonds) {
+    if (!this.ok) return;
+    if (this.spark) { this.group.remove(this.spark); this.spark.geometry.dispose(); this.spark = null; }
+    var count = bonds.share.length, size = 1.05;
+    var p = new Float32Array(count * 6), c = new Float32Array(count * 6);
+    var base = this.light ? 0.66 : 0.36, peak = this.light ? 0 : 1;
+    for (var k = 0; k < count; k++) {
+      p[k * 6] = bonds.positions[k * 4] * size; p[k * 6 + 2] = bonds.positions[k * 4 + 1] * size;
+      p[k * 6 + 3] = bonds.positions[k * 4 + 2] * size; p[k * 6 + 5] = bonds.positions[k * 4 + 3] * size;
+      var shade = base + (peak - base) * Math.pow(bonds.share[k], 0.3);
+      for (var j = 0; j < 6; j++) c[k * 6 + j] = shade;
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    this.spark = new THREE.LineSegments(g, this.sparkMaterial);
+    this.group.add(this.spark);
+  };
+
+  /* The electrode the spark grows toward: a ring round it, or a line beneath it. */
+  GeometryView.prototype.addElectrode = function (shape) {
+    if (!this.ok) return;
+    var size = 1.05, pts = [];
+    if (shape === 'plane') pts.push(-size, 0, -size, size, 0, -size);
+    else {
+      for (var i = 0; i < 96; i++) {
+        var a = 2 * Math.PI * i / 96, b = 2 * Math.PI * (i + 1) / 96;
+        pts.push(size * Math.cos(a), 0, size * Math.sin(a), size * Math.cos(b), 0, size * Math.sin(b));
+      }
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    this.group.add(new THREE.LineSegments(g, this.dualMaterial));
   };
 
   /* How far from the centre the wave reaches where its height is `value`, at the top of its swing. */
