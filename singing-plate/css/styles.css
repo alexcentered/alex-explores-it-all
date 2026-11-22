@@ -872,6 +872,8 @@ a.entry-photo-link { display: block; border-radius: 9px; }
 
 .mode-block { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
 .mode-block .chips { max-height: none; }
+.step-head { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+.step-text { font-size: 13px; line-height: 1.65; color: var(--fg-soft); min-height: 5.2em; }
 
 .tag {
   display: inline-block; flex: none;

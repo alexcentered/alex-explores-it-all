@@ -379,6 +379,22 @@ A 3D model placed from published dimensions, in metres, with a 1.7 m figure for 
 
 Each structure has a short account of how it was built, with sources.
 
+### Build sequence
+
+Under the model, a slider and **Back**, **Next** and **Play from the start** step through the order each structure went up in. The model shows only what stood at that step, and the view holds still so the growth is easy to follow. The Great Pyramid is shown part built at the heights of its chambers.
+
+Bright lines are cords: the geometry that sets out a design before any stone is laid. The King's Chamber starts with three such steps. Two squares make the floor; half the floor's diagonal, stood upright, gives the height; and with that height the end-wall diagonal and the diagonal through the room come out at exactly 15 and 25 cubits, a 3-4-5 triangle with the 20-cubit length.
+
+Every step says what it rests on:
+
+| Basis | Meaning |
+| --- | --- |
+| From the remains or records | The structure itself, or a written record, shows it. |
+| Inferred | It follows from the remains, but nothing records it. |
+| Debated | Specialists disagree. |
+
+How the heaviest stones were lifted is debated or unrecorded at every site here except the Parthenon, whose building accounts survive on stone. Standing waves are offered only on the last step, when the room is finished.
+
 ### As proportions
 
 Pairs of lengths, in the builders' own units where those are known, each with its nearest simple fraction and nearest musical interval, and **Hear** to play it as two tones.

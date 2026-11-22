@@ -19,6 +19,12 @@
  *        computed   worked out here, or in a published calculation
  *        claimed    said widely, with no measurement found to support it
  *
+ * Each structure also has a build sequence: the order it went up in, one
+ * step at a time. Every step says what it rests on:
+ *        evidence   the remains or a written record show it
+ *        inferred   it follows from the remains, but nothing records it
+ *        debated    specialists disagree
+ *
  * Nothing here is invented to fill a gap. Where no figure was found the
  * entry says so.
  */
@@ -167,7 +173,15 @@
 
   /* ---------------------------------------------------------- geometry */
 
-  function Builder() {
+  /*
+   * step: draw the structure as it stood at this step of its build
+   * sequence. Leave it out for the finished structure. The bounds always
+   * cover the finished structure, so the view does not jump between steps.
+   */
+  function Builder(step) {
+    this.step = step === undefined || step === null ? Infinity : step;
+    this.on = true;
+    this.guides = [];
     // solid: worked stone. ground: floors, bedrock and retaining walls, drawn darker. ghost: see-through volumes.
     this.pos = { solid: [], ghost: [], ground: [] };
     this.idx = { solid: [], ghost: [], ground: [] };
@@ -176,8 +190,15 @@
     this.max = [-Infinity, -Infinity, -Infinity];
   }
 
+  /* What follows belongs to steps first..last of the build sequence (last left out: from first onward). */
+  Builder.prototype.at = function (first, last) {
+    var step = Math.min(this.step, this.lastStep || Infinity);
+    this.on = step >= first && step <= (last === undefined ? Infinity : last);
+    return this;
+  };
+
   Builder.prototype.point = function (kind, p) {
-    this.pos[kind].push(p[0], p[1], p[2]);
+    if (this.on) this.pos[kind].push(p[0], p[1], p[2]);
     for (var a = 0; a < 3; a++) {
       if (p[a] < this.min[a]) this.min[a] = p[a];
       if (p[a] > this.max[a]) this.max[a] = p[a];
@@ -188,11 +209,22 @@
   Builder.prototype.face = function (kind, corners) {
     var base = this.pos[kind].length / 3;
     for (var i = 0; i < corners.length; i++) this.point(kind, corners[i]);
+    if (!this.on) return;
     for (var k = 1; k < corners.length - 1; k++) this.idx[kind].push(base, base + k, base + k + 1);
   };
 
   Builder.prototype.edge = function (a, b) {
-    this.edges.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+    if (this.on) this.edges.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+  };
+
+  /* A construction line: part of the design, not of the building. */
+  Builder.prototype.guide = function (a, b) {
+    if (this.on) this.guides.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+  };
+
+  /* A closed outline through the given points. */
+  Builder.prototype.outline = function (points) {
+    for (var i = 0; i < points.length; i++) this.guide(points[i], points[(i + 1) % points.length]);
   };
 
   /* A box: centre of its footprint, the height of its underside, its three sizes, and a turn about the vertical. */
@@ -240,6 +272,20 @@
     }
   };
 
+  /* A square pyramid cut off level partway up: the pyramid as it stood while it was being built. */
+  Builder.prototype.frustum = function (kind, cx, cy, z0, base, top, height) {
+    var h = base / 2, g = top / 2, z1 = z0 + height;
+    var b = [[cx - h, cy - h, z0], [cx + h, cy - h, z0], [cx + h, cy + h, z0], [cx - h, cy + h, z0]];
+    var t = [[cx - g, cy - g, z1], [cx + g, cy - g, z1], [cx + g, cy + g, z1], [cx - g, cy + g, z1]];
+    this.face(kind, [b[3], b[2], b[1], b[0]]);
+    this.face(kind, [t[0], t[1], t[2], t[3]]);
+    for (var i = 0; i < 4; i++) {
+      var j = (i + 1) % 4;
+      this.face(kind, [b[i], b[j], t[j], t[i]]);
+      if (kind === 'ghost') { this.edge(b[i], b[j]); this.edge(t[i], t[j]); this.edge(b[i], t[i]); }
+    }
+  };
+
   /* A ridged roof: a triangle across the width, run along the length. */
   Builder.prototype.gable = function (kind, cx, cy, z0, length, width, height) {
     var hx = length / 2, hy = width / 2;
@@ -264,6 +310,7 @@
       ghost: { positions: new Float32Array(this.pos.ghost), indices: new Uint32Array(this.idx.ghost) },
       ground: { positions: new Float32Array(this.pos.ground), indices: new Uint32Array(this.idx.ground) },
       edges: new Float32Array(this.edges),
+      guides: new Float32Array(this.guides),
       min: this.min.slice(), max: this.max.slice()
     };
   };
@@ -301,12 +348,31 @@
         { status: 'claimed', text: 'It is often said that the chamber is tuned to a particular note or a healing frequency. No peer-reviewed acoustic measurement of the chamber was found for this page.' }
       ],
       sources: ['W. M. F. Petrie, The Pyramids and Temples of Gizeh (1883)'],
+      steps: [
+        { title: 'Set out the floor', basis: 'evidence', text: 'Two squares of 10 cubits side by side: a floor 20 cubits long and 10 wide. A cord and pegs are enough to lay this out.' },
+        { title: 'Find the height', basis: 'inferred', text: 'Stretch a cord across the floor from corner to corner: 22.36 cubits. Half of that, 11.18, is the height of the walls. The measured height matches this construction; no Egyptian text records that it was done this way.' },
+        { title: 'The triangle inside', basis: 'evidence', text: 'With that height, the diagonal of the end wall is exactly 15 cubits and the diagonal through the room exactly 25. With the 20-cubit length they make a 3-4-5 triangle, the same triangle a 12-knot cord gives for setting out a right angle.' },
+        { title: 'Floor and coffer', basis: 'evidence', text: 'The granite coffer is slightly wider than the passage that leads to the room, so it was set in place while the room was still open to the sky.' },
+        { title: 'Walls', basis: 'evidence', text: 'Five courses of granite blocks, brought 800 km down the Nile from Aswan and dressed to fit closely against each other.' },
+        { title: 'Roof beams', basis: 'inferred', text: 'Nine granite beams, the heaviest tens of tonnes, were raised 43 m above the ground as the pyramid rose round the room. Five low compartments and a limestone gable were then built above them to spread the load. How the beams were lifted is not recorded.' }
+      ],
       parts: function (b) {
-        var L = KING.L, W = KING.W, H = KING.H, t = 0.6;
-        b.box('ground', 0, 0, -t, L + 2 * t, W + 2 * t, t);                // floor
-        b.box('ghost', 0, 0, 0.02, L, W, H - 0.02);                        // the room itself
-        // nine ceiling beams, running across the width
-        for (var i = 0; i < 9; i++) b.box('ghost', -L / 2 + (i + 0.5) * L / 9, 0, H, L / 9 - 0.06, W + 2 * t, 1.6);
+        var L = KING.L, W = KING.W, H = KING.H, t = 0.6, x0 = -L / 2, y0 = -W / 2, z = 0.01;   // z: cords lie just clear of the floor
+        // the design, drawn as cords
+        b.at(1, 3);
+        b.outline([[x0, y0, z], [x0 + L, y0, z], [x0 + L, y0 + W, z], [x0, y0 + W, z]]);
+        b.guide([0, y0, z], [0, y0 + W, z]);                                // where the two squares meet
+        b.at(2, 3);
+        b.guide([x0, y0, z], [x0 + L, y0 + W, z]);                          // floor diagonal, 22.36 cubits
+        b.guide([x0, y0, 0], [x0, y0, H]);                                  // half of it, stood upright
+        b.at(3, 3);
+        b.guide([x0, y0, 0], [x0, y0 + W, H]);                              // end-wall diagonal, 15
+        b.guide([x0, y0 + W, H], [x0 + L, y0, 0]);                          // through the room, 25
+        b.guide([x0, y0, z], [x0 + L, y0, z]);                              // the length, 20
+        b.at(1);
+        b.box('ground', 0, 0, -t, L + 2 * t, W + 2 * t, t);                 // floor
+        b.person(1.5, 0.6, 0);
+        b.at(4);
         // the coffer, near the west end: about 2.28 x 0.98 x 1.05 m outside (Petrie)
         var cx = -L / 2 + 2.3, cl = 2.28, cw = 0.98, ch = 1.05, wall = 0.15;
         b.box('solid', cx, 0, 0, cl, cw, 0.18);
@@ -314,7 +380,11 @@
         b.box('solid', cx, cw / 2 - wall / 2, 0.18, cl, wall, ch - 0.18);
         b.box('solid', cx - cl / 2 + wall / 2, 0, 0.18, wall, cw - 2 * wall, ch - 0.18);
         b.box('solid', cx + cl / 2 - wall / 2, 0, 0.18, wall, cw - 2 * wall, ch - 0.18);
-        b.person(1.5, 0.6, 0);
+        b.at(5);
+        b.box('ghost', 0, 0, 0.02, L, W, H - 0.02);                         // the room itself
+        b.at(6);
+        // nine ceiling beams, running across the width
+        for (var i = 0; i < 9; i++) b.box('ghost', -L / 2 + (i + 0.5) * L / 9, 0, H, L / 9 - 0.06, W + 2 * t, 1.6);
       }
     },
     {
@@ -342,13 +412,33 @@
         { status: 'claimed', text: 'The pyramid is often described as a power plant or a resonator. No measurement supports that, and the structure is almost entirely solid stone.' }
       ],
       sources: ['J. H. Cole, Determination of the Exact Size and Orientation of the Great Pyramid (1925)', 'M. Balezin and others, Journal of Applied Physics 124, 034903 (2018)'],
+      steps: [
+        { title: 'Level the rock and set out the square', basis: 'inferred', text: 'The plateau was cut level round a core of natural rock, and a square of 440 cubits was marked out with its sides facing the compass points. The results are measured: level to about 2 cm, with sides equal to within about 20 cm. The method, probably sighting on stars, is inferred.' },
+        { title: 'The chamber in the rock', basis: 'evidence', text: 'A passage was cut down into the bedrock to a chamber about 30 m below the base. It was left unfinished.' },
+        { title: 'The courses rise', basis: 'evidence', text: 'Limestone blocks were laid in level courses, and the Queen\'s Chamber was built into the masonry 21 m up. Logbooks found in 2013 at Wadi al-Jarf, kept by an inspector named Merer, record boat crews ferrying fine limestone from Tura to Giza.' },
+        { title: 'The King\'s Chamber', basis: 'debated', text: 'At 43 m the granite chamber was built and roofed. Raising its beams, and every block above, needed ramps or some other lifting method. Straight ramps, spiral ramps and ramps inside the pyramid have all been proposed, and none is settled.' },
+        { title: 'To the top, then the casing', basis: 'inferred', text: 'About 210 courses brought it to 280 cubits. The outer casing of white limestone is thought to have been dressed smooth from the top down as the ramps were removed. Most of the casing was later taken for building stone.' }
+      ],
       parts: function (b) {
-        var base = 440 * CUBIT, height = 280 * CUBIT;
+        var base = 440 * CUBIT, height = 280 * CUBIT, h = base / 2;
+        function partway(z) { return base * (1 - z / height); }
+        b.at(1, 2);
+        b.outline([[-h, -h, 0.2], [h, -h, 0.2], [h, h, 0.2], [-h, h, 0.2]]);
+        b.guide([0, -h, 0.2], [0, h, 0.2]);                                 // the north-south line
+        b.at(1);
         b.box('ghost', 0, 0, -1.5, base + 30, base + 30, 1.4);              // the plateau, see-through so the rock chamber shows
+        b.at(2);
+        b.box('solid', 0, 0, -33, 8.3, 14, 3.5);                            // the unfinished chamber in the rock
+        b.at(3, 3);
+        b.frustum('ghost', 0, 0, 0, base, partway(28), 28);
+        b.at(3);
+        b.box('solid', 0, 0, 21, 5.23, 5.75, 6.2);                          // Queen's Chamber, on the axis
+        b.at(4, 4);
+        b.frustum('ghost', 0, 0, 0, base, partway(50), 50);
+        b.at(4);
+        b.box('solid', 0, -11, 43, KING.W, KING.L, KING.H);                 // King's Chamber, south of the axis
+        b.at(5);
         b.pyramid('ghost', 0, 0, 0, base, height);
-        b.box('solid', 0, -11, 43, KING.W, KING.L, KING.H);               // King's Chamber, south of the axis
-        b.box('solid', 0, 0, 21, 5.23, 5.75, 6.2);                         // Queen's Chamber, on the axis
-        b.box('solid', 0, 0, -33, 8.3, 14, 3.5);                           // the unfinished chamber in the rock
       }
     },
     {
@@ -375,22 +465,36 @@
         { status: 'claimed', text: 'The Osireion is described in some accounts as an acoustic or energy device. No acoustic measurement of it was found for this page, and today it is roofless and flooded.' }
       ],
       sources: ['H. Frankfort, A. de Buck and B. Gunn, The Cenotaph of Seti I at Abydos (Egypt Exploration Society, 1933)', 'J. Westerman, groundwater investigations at the Osireion'],
+      steps: [
+        { title: 'Dig to the water', basis: 'evidence', text: 'A great pit was cut down to the level of the groundwater, far below the floor of the temple that stands in front of it.' },
+        { title: 'Walls to hold back the ground', basis: 'evidence', text: 'Thick walls of limestone, faced inside with hard red sandstone, line the pit. Seventeen small cells open through the facing onto the channel.' },
+        { title: 'The island and its channel', basis: 'evidence', text: 'A stone platform fills the middle of the hall, leaving a channel a few metres wide all round it. Groundwater fills the channel, and steps lead down into it at each end.' },
+        { title: 'Ten pillars', basis: 'inferred', text: 'Each pillar is a single block of red granite of about 50 to 55 tonnes, brought more than 300 km by river from Aswan and lowered into the pit. How they were moved and stood upright is not recorded.' },
+        { title: 'Beams and roof', basis: 'inferred', text: 'Granite beams were laid along each row of pillars, and the nave between was roofed with slabs spanning about 7 m. The roof is gone today. The order of these steps is inferred from the structure; no building record survives.' }
+      ],
       parts: function (b) {
         var L = 30.5, W = 19.8, channel = 3, il = L - 2 * channel, iw = W - 2 * channel, wall = 2.5, depth = 1.6;
-        b.box('ground', 0, 0, -depth - 0.6, L + 2 * wall, W + 2 * wall, 0.6);         // bed of the channel
-        b.box('solid', 0, 0, -depth, il, iw, depth);                                   // the island
-        b.box('ghost', 0, 0, -depth, L, W, depth - 0.5);                               // water
+        b.at(1);
+        b.box('ground', 0, 0, -depth - 0.6, L + 2 * wall, W + 2 * wall, 0.6);         // bed of the pit
+        b.person(0, 0, 0);
+        b.at(2);
         // the walls that hold back the ground, drawn to the height of the beams
         b.box('ground', 0, -(W + wall) / 2, -depth, L + 2 * wall, wall, depth + 4.0);
         b.box('ground', 0, (W + wall) / 2, -depth, L + 2 * wall, wall, depth + 4.0);
         b.box('ground', -(L + wall) / 2, 0, -depth, wall, W, depth + 4.0);
         b.box('ground', (L + wall) / 2, 0, -depth, wall, W, depth + 4.0);
+        b.at(3);
+        b.box('solid', 0, 0, -depth, il, iw, depth);                                   // the island
+        b.box('ghost', 0, 0, -depth, L, W, depth - 0.5);                               // water
         // ten pillars in two rows of five, and the beams they carried
         for (var row = -1; row <= 1; row += 2) {
+          b.at(4);
           for (var i = 0; i < 5; i++) b.box('solid', (i - 2) * 4.7, row * 4.55, 0, 2.35, 2.1, 4.0);
+          b.at(5);
           b.box('solid', 0, row * 4.55, 4.0, 21.2, 2.1, 1.6);
         }
-        b.person(0, 0, 0);
+        b.at(5, 5);
+        b.box('ghost', 0, 0, 5.6, 21.2, 11.2, 0.6);                                    // the lost roof over the nave
       }
     },
     {
@@ -418,9 +522,19 @@
         { status: 'measured', text: 'Where the Greeks did build for sound, it shows. At the theatre of Epidaurus, the stepped stone seats were found to filter out sound below about 500 Hz, such as crowd murmur and wind, while passing the higher frequencies of the voice (Declercq and Dekeyser, 2007).' }
       ],
       sources: ['A. K. Orlandos, The Architecture of the Parthenon (1976 to 1978)', 'N. Declercq and C. Dekeyser, Journal of the Acoustical Society of America 121 (2007)'],
+      steps: [
+        { title: 'The platform', basis: 'evidence', text: 'Three steps of marble were laid on the foundations of an earlier temple that the Persians destroyed in 480 BC. The top surface was cut with its upward curve from the start.' },
+        { title: 'Columns, drum by drum', basis: 'evidence', text: 'Each column is ten or eleven drums, lifted by crane with ropes looped round knobs left on the stone, and centred on a wooden pin. The flutes were carved after the drums were stacked, so they run true across the joints.' },
+        { title: 'The inner building', basis: 'evidence', text: 'Walls of marble blocks, laid without mortar and held to each other by iron clamps sealed in lead. This held the gold and ivory statue of Athena.' },
+        { title: 'Beam, frieze and cornice', basis: 'evidence', text: 'Marble beams span from column to column. Above them run the frieze and the cornice, bringing the front to 13.72 m: four ninths of its width.' },
+        { title: 'Roof and sculpture', basis: 'evidence', text: 'Timber rafters carried tiles of thin marble. The building was dedicated in 438 BC, nine years after it was begun, and the sculptures in the gables were finished in 432 BC. The dates come from accounts inscribed on stone.' }
+      ],
       parts: function (b) {
         var W = 30.88, L = 69.50, colH = 10.43, r = 1.905 / 2;
+        b.at(1);
         for (var s = 0; s < 3; s++) b.box('solid', 0, 0, -(s + 1) * 0.55, L + s * 1.4 + 0.02, W + s * 1.4 + 0.02, 0.55);
+        b.person(-L / 2 - 4, 0, -1.65);
+        b.at(2);
         var i, x, y, ix = (L - 2 * r - 0.3) / 16, iy = (W - 2 * r - 0.3) / 7;
         for (i = 0; i < 17; i++) {
           x = -L / 2 + r + 0.15 + i * ix;
@@ -432,10 +546,12 @@
           b.cylinder('solid', -L / 2 + r + 0.15, y, 0, r, r * 0.78, colH, 14);
           b.cylinder('solid', L / 2 - r - 0.15, y, 0, r, r * 0.78, colH, 14);
         }
+        b.at(3);
         b.box('solid', 0, 0, 0, 59.0, 21.4, colH);                         // the inner building
+        b.at(4);
         b.box('solid', 0, 0, colH, L, W, 3.29);                            // beam, frieze and cornice: 13.72 m to the top
+        b.at(5);
         b.gable('solid', 0, 0, colH + 3.29, L, W, 3.5);
-        b.person(-L / 2 - 4, 0, -1.65);
       }
     },
     {
@@ -460,16 +576,27 @@
         { status: 'measured', text: 'There were no echoes inside the circle, and the effect did not carry to anyone outside it: sound made within was clearer to those within (Cox, Fazenda and Greaney, 2020).' }
       ],
       sources: ['T. Cox, B. Fazenda and S. Greaney, Journal of Archaeological Science 122 (2020)', 'D. Nash and others, Science Advances 6 (2020)'],
+      steps: [
+        { title: 'The ground', basis: 'evidence', text: 'About five centuries before the great stones, a circular ditch and bank were dug here with picks made of antler. The antlers left in the ditch give the date.' },
+        { title: 'The five trilithons', basis: 'debated', text: 'The tallest stones went up first: once the circle stood they could not have been brought in. Each upright was tipped into a pit with one sloping side, hauled vertical with ropes and packed tight. How the lintels were lifted on top is not known. Timber platforms raised a layer at a time, and earth ramps, have both been proposed.' },
+        { title: 'The circle of thirty', basis: 'evidence', text: 'Thirty uprights of about 25 tonnes each, dragged 25 km from West Woods, were set in a ring. Their tops were dressed to one level although the ground beneath them slopes.' },
+        { title: 'The ring of lintels', basis: 'evidence', text: 'Thirty lintels closed the ring. Each sits on knobs left on the uprights and locks to its neighbours with a tongue and groove: joints from carpentry, cut in stone. Each is shaped to the curve of the circle.' }
+      ],
       parts: function (b) {
         var R = 15.5, i, a;
+        b.at(1);
         b.cylinder('ground', 0, 0, -0.4, 21, 21, 0.4, 48);
+        b.person(0, 0, 0);
         for (i = 0; i < 30; i++) {
           a = 2 * Math.PI * (i + 0.5) / 30;
+          b.at(3);
           b.box('solid', R * Math.cos(a), R * Math.sin(a), 0, 1.1, 2.1, 4.1, a);
           var m = 2 * Math.PI * (i + 1) / 30;                                // a lintel bridges each gap
+          b.at(4);
           b.box('solid', R * Math.cos(m), R * Math.sin(m), 4.1, 1.0, 3.25, 0.8, m);
         }
         // five trilithons in a horseshoe, open toward the north-east (here: +x)
+        b.at(2);
         var tops = [6.1, 6.5, 7.3, 6.5, 6.1], angles = [70, 125, 180, 235, 290];
         for (i = 0; i < 5; i++) {
           a = angles[i] * Math.PI / 180;
@@ -478,7 +605,6 @@
           b.box('solid', cx - tx * 1.7, cy - ty * 1.7, 0, 1.2, 2.2, h, a);
           b.box('solid', cx, cy, h, 1.2, 5.0, 1.0, a);
         }
-        b.person(0, 0, 0);
       }
     },
     {
@@ -505,26 +631,35 @@
       ],
       sources: ['R. Jahn, P. Devereux and M. Ibison, Journal of the Acoustical Society of America 99 (1996)', 'I. Cook, S. Pajot and A. Leuchter, Time and Mind 1 (2008)', 'M. J. O\'Kelly, Newgrange: Archaeology, Art and Legend (1982)'],
       closeUp: 'Passage and chamber',
+      steps: [
+        { title: 'Passage and chamber stones', basis: 'evidence', text: 'More than forty tall slabs were stood upright in sockets to line a passage 19 m long, opening into a chamber with three recesses. Many are carved with spirals and lozenges.' },
+        { title: 'The corbelled roof', basis: 'evidence', text: 'Ring upon ring of flat slabs, each sitting a little further in than the one below and weighted at its outer end, until one capstone closed the top 6 m up. The slabs tilt outward and are grooved to shed water.' },
+        { title: 'Passage roof and roof-box', basis: 'evidence', text: 'The passage was roofed with slabs, and an opening was left above the entrance, lined up so that the rising sun at midwinter shines along the passage to the chamber floor.' },
+        { title: 'The mound', basis: 'debated', text: 'Layers of river stones and turf were heaped over everything, held in by 97 kerbstones. The white quartz wall seen at the entrance today is a reconstruction from the 1970s, and whether the quartz originally stood as a wall or lay as a pavement is disputed.' }
+      ],
       parts: function (b, close) {
         var x0 = -42.5, len = 19, i;
-        if (close) {
-          b.box('ground', x0 + 13, 0, -0.4, 34, 14, 0.4);
-        } else {
+        b.at(1);
+        if (close) b.box('ground', x0 + 13, 0, -0.4, 34, 14, 0.4);
+        else b.box('ground', 0, 0, -0.5, 88, 88, 0.5);
+        if (!close) {
+          b.at(4);
           b.cylinder('ghost', 0, 0, 0.05, 42.5, 30, 11, 40);               // the mound
-          b.box('ground', 0, 0, -0.5, 88, 88, 0.5);
         }
         // the passage runs in from the south-east edge (here: from -x) toward the centre
+        b.at(1);
         b.box('solid', x0 + len / 2, 0, 0, len, 1.9, 0.12);
         b.box('solid', x0 + len / 2, -0.75, 0.12, len, 0.4, 1.7);
         b.box('solid', x0 + len / 2, 0.75, 0.12, len, 0.4, 1.7);
-        b.box('ghost', x0 + len / 2, 0, 1.82, len, 1.9, 0.35);             // roof slabs
         // chamber: a central space with three recesses
         var cx = x0 + len + 1.6;
         b.box('solid', cx, 0, 0, 6.6, 6.4, 0.12);
         b.box('solid', cx + 2.5, 0, 0.12, 0.4, 2.2, 1.9);                  // end recess
         b.box('solid', cx, 2.9, 0.12, 2.4, 0.4, 1.9);                      // side recesses
         b.box('solid', cx, -2.9, 0.12, 2.4, 0.4, 1.9);
+        b.person(cx, 0, 0.12);
         // the corbelled roof: rings stepping inward to a capstone at 6 m
+        b.at(2);
         for (i = 0; i < 9; i++) {
           var half = 2.6 - i * 0.26, z = 2.0 + i * 0.42, t = 0.5;
           b.box('solid', cx, half + t / 2, z, 2 * half + 2 * t, t, 0.42);
@@ -533,7 +668,8 @@
           b.box('solid', cx - half - t / 2, 0, z, t, 2 * half, 0.42);
         }
         b.box('solid', cx, 0, 2.0 + 9 * 0.42, 1.6, 1.6, 0.25);
-        b.person(cx, 0, 0.12);
+        b.at(3);
+        b.box('ghost', x0 + len / 2, 0, 1.82, len, 1.9, 0.35);             // roof slabs
       }
     }
   ];
@@ -547,11 +683,14 @@
    * The shapes of one structure as meshes. See Builder.result for the fields.
    * close: for a structure with a closeUp, leave out its surroundings so the
    * interior fills the view.
+   * step: 1 .. steps.length shows the structure partway through its build
+   * sequence; left out, or the last step, shows it finished.
    */
-  function model(id, close) {
+  function model(id, close, step) {
     var s = find(id);
     if (!s) return null;
-    var b = new Builder();
+    var b = new Builder(step);
+    b.lastStep = s.steps.length;
     s.parts(b, !!(close && s.closeUp));
     return b.result();
   }
@@ -574,6 +713,7 @@
     INTERVALS: INTERVALS,
     STRUCTURES: STRUCTURES,
     STATUSES: ['measured', 'computed', 'claimed'],
+    BASES: ['evidence', 'inferred', 'debated'],
     nearestInterval: nearestInterval,
     simpleFraction: simpleFraction,
     boxModes: boxModes,

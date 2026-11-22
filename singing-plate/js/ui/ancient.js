@@ -15,6 +15,8 @@
   var HEAR_MS = 3000;
   var BASE_HZ = 220;             // the lower note when a ratio is played as two tones
   var MODE_COUNT = 10;
+  // How long each step shows when the sequence is played. Tests set SP_STEP_MS to run it quickly.
+  var STEP_MS = Number(root.SP_STEP_MS) > 0 ? Number(root.SP_STEP_MS) : 2600;
 
   function $(id) { return document.getElementById(id); }
 
@@ -26,6 +28,8 @@
   var duo = new SP.Duo();
   var sounding = '', soundTimer = null;
   var structure = null, modes = [];
+  var step = 0;                  // step of the build sequence on show; not saved, a page always opens on the finished structure
+  var playTimer = null;
 
   /* ----------------------------------------------------------- storage */
 
@@ -146,23 +150,77 @@
     structure.sources.forEach(function (s) { el.sourceList.appendChild(make('li', '', s)); });
 
     el.viewTitle.textContent = structure.name;
-    renderModel();
+    stopPlay();
+    step = structure.steps.length;
+    el.stepRange.max = structure.steps.length;
+    renderModel(true);
+    renderStep();
     renderRatios();
     renderSound();
     renderModes();
   }
 
   /* A structure with a close-up can be shown whole, or with its surroundings left out. */
-  function renderModel() {
+  function renderModel(resetCamera) {
     el.closeBtn.hidden = !structure.closeUp;
     var close = !!structure.closeUp && state.close;
     el.closeBtn.textContent = close ? 'Whole site' : 'Close up';
     el.closeBtn.setAttribute('aria-pressed', close ? 'true' : 'false');
     if (structure.closeUp) el.closeBtn.title = structure.closeUp;
     if (view && view.ok) {
-      view.show(ancient.model(structure.id, close));
-      viewer.resetView();
+      view.show(ancient.model(structure.id, close, step));
+      if (resetCamera) viewer.resetView();
     }
+  }
+
+  /* ---------------------------------------------------- build sequence */
+
+  var BASIS = {
+    evidence: { text: 'From the remains or records', status: 'measured' },
+    inferred: { text: 'Inferred', status: 'computed' },
+    debated: { text: 'Debated', status: 'claimed' }
+  };
+
+  function finished() { return step >= structure.steps.length; }
+
+  function renderStep() {
+    var n = structure.steps.length, s = structure.steps[step - 1];
+    el.stepRange.value = step;
+    el.stepCount.textContent = 'Step ' + step + ' of ' + n + (finished() ? ' · finished' : '');
+    el.stepTitle.textContent = s.title;
+    el.stepText.textContent = s.text;
+    el.stepBasis.textContent = BASIS[s.basis].text;
+    el.stepBasis.dataset.status = BASIS[s.basis].status;
+    el.stepPrev.disabled = step <= 1;
+    el.stepNext.disabled = finished();
+    el.stepPlay.textContent = playTimer ? 'Stop' : 'Play from the start';
+    el.stepPlay.setAttribute('aria-pressed', playTimer ? 'true' : 'false');
+  }
+
+  function goToStep(next) {
+    var n = structure.steps.length;
+    next = Math.min(n, Math.max(1, Math.round(next)));
+    if (next === step) { renderStep(); return; }
+    step = next;
+    renderModel(false);
+    renderStep();
+    renderModes();          // standing waves belong to the finished room
+  }
+
+  function stopPlay() {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+
+  function play() {
+    if (playTimer) { stopPlay(); renderStep(); return; }
+    goToStep(1);
+    playTimer = setInterval(function () {
+      if (finished()) { stopPlay(); renderStep(); return; }
+      goToStep(step + 1);
+      if (finished()) { stopPlay(); renderStep(); }
+    }, STEP_MS);
+    renderStep();
   }
 
   /* -------------------------------------------------------- proportions */
@@ -240,7 +298,7 @@
   }
 
   function renderModes() {
-    var room = structure.room;
+    var room = structure.room && finished() ? structure.room : null;
     el.modeBlock.hidden = !room;
     if (!room) { modes = []; if (view) view.setSheet(null); return; }
     modes = ancient.boxModes(room.L, room.W, room.H, MODE_COUNT);
@@ -271,7 +329,7 @@
 
   function renderMode() {
     var room = structure.room;
-    if (!room) return;
+    if (!room || !finished()) return;
     el.modeList.querySelectorAll('.chip').forEach(function (chip) {
       chip.setAttribute('aria-current', Number(chip.dataset.mode) === state.mode ? 'true' : 'false');
     });
@@ -323,7 +381,7 @@
 
   function init() {
     ['themeBtn', 'pickList', 'factPlace', 'factDate', 'factMaterial', 'factSize', 'builtText', 'sourceList',
-      'viewTitle', 'viewReset', 'closeBtn', 'stage', 'stageMsg', 'modeBlock', 'modeCount', 'modeList', 'modeText', 'sheetField',
+      'viewTitle', 'viewReset', 'closeBtn', 'stepRange', 'stepCount', 'stepPrev', 'stepNext', 'stepPlay', 'stepTitle', 'stepBasis', 'stepText', 'stage', 'stageMsg', 'modeBlock', 'modeCount', 'modeList', 'modeText', 'sheetField',
       'sheetHeight', 'sheetOut', 'sheetHint', 'modeHear', 'modeHearNote', 'ratioCount', 'ratioList', 'ratioNote', 'soundList',
       'volume', 'volumeOut'
     ].forEach(function (id) { el[id] = $(id); });
@@ -349,10 +407,14 @@
     el.viewReset.addEventListener('click', function () { viewer.resetView(); });
     el.closeBtn.addEventListener('click', function () {
       state.close = !state.close;
-      renderModel();
+      renderModel(true);
       if (structure.room) renderMode();
       save();
     });
+    el.stepRange.addEventListener('input', function () { stopPlay(); goToStep(Number(el.stepRange.value)); });
+    el.stepPrev.addEventListener('click', function () { stopPlay(); goToStep(step - 1); });
+    el.stepNext.addEventListener('click', function () { stopPlay(); goToStep(step + 1); });
+    el.stepPlay.addEventListener('click', play);
     el.sheetHeight.addEventListener('input', function () {
       state.sheet = num(Number(el.sheetHeight.value) / 100, 0, 1, state.sheet);
       renderMode(); save();
@@ -378,7 +440,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && sounding) { stopSound(); e.preventDefault(); }
     });
-    root.addEventListener('pagehide', stopSound);
+    root.addEventListener('pagehide', function () { stopSound(); stopPlay(); });
     root.addEventListener('hashchange', function () {
       var id = (root.location.hash || '').slice(1);
       if (ancient.find(id)) choose(id);
@@ -393,7 +455,7 @@
   // Exposed for debugging from the browser console; not a public API.
   SP.ancientPage = {
     current: function () {
-      return { state: state, sounding: sounding, modes: modes, webgl: !!(viewer && viewer.ok), shapes: view && view.ok ? view.group.children.length : 0,
+      return { state: state, step: step, playing: !!playTimer, sounding: sounding, modes: modes, webgl: !!(viewer && viewer.ok), shapes: view && view.ok ? view.group.children.length : 0,
         scale: view && view.ok ? view.group.scale.x : 0 };
     },
     duo: duo
