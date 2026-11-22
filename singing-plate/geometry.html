@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Geometry</title>
+<meta name="description" content="The five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, and two fractals.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Geometry</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="index.html">Console</a>
+    <a href="lab.html">3D lab</a>
+    <a href="fields.html">Fields</a>
+    <a href="ancient.html">Ancient</a>
+    <a href="geometry.html" aria-current="page">Geometry</a>
+    <a href="line.html">Line test</a>
+  </nav>
+  <div class="topbar-tools">
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="ancient-grid geometry-grid">
+
+  <!-- ================================================================= FORM -->
+  <section class="panel ancient-pick" aria-labelledby="pickTitle">
+    <div class="panel-head"><h2 id="pickTitle">Form</h2></div>
+    <p class="label">The five Platonic solids</p>
+    <div class="pick-list" id="solidList" role="radiogroup" aria-label="Platonic solid"></div>
+    <p class="label">Two fractals</p>
+    <div class="pick-list" id="fractalList" role="radiogroup" aria-label="Fractal"></div>
+
+    <dl class="pick-facts" id="factList"></dl>
+    <div class="prose" id="noteText"></div>
+  </section>
+
+  <!-- ================================================================= VIEW -->
+  <section class="panel ancient-view" aria-labelledby="viewTitle">
+    <div class="panel-head">
+      <h2 id="viewTitle">Cube</h2>
+      <div class="btn-row tight">
+        <div class="seg small" id="viewSeg" role="group" aria-label="What to show">
+          <label><input type="radio" name="view" value="solid"><span>Solid</span></label>
+          <label><input type="radio" name="view" value="wave"><span>Wave</span></label>
+          <label><input type="radio" name="view" value="both" checked><span>Both</span></label>
+        </div>
+        <button class="btn ghost" id="viewReset" type="button">Reset view</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" role="img" aria-label="Three-dimensional view of the form. Drag to orbit, scroll to zoom.">
+      <p class="stage-msg" id="stageMsg" hidden></p>
+    </div>
+
+    <div class="view-foot">
+      <p class="value" id="viewCaption"></p>
+      <div class="btn-row">
+        <button class="btn" id="moveBtn" type="button" aria-pressed="true">Freeze</button>
+      </div>
+    </div>
+
+    <div class="mode-block" id="depthBlock" hidden>
+      <div class="field-head">
+        <label class="label" for="depth">Steps</label>
+        <output class="label" id="depthOut" for="depth"></output>
+      </div>
+      <input class="range" id="depth" type="range" min="0" max="6" step="1" value="3">
+      <p class="hint" id="depthHint"></p>
+    </div>
+  </section>
+
+  <!-- ================================================================= WAVE -->
+  <section class="panel ancient-ratio" aria-labelledby="waveTitle">
+    <div class="panel-head">
+      <h2 id="waveTitle">As a vibration</h2>
+      <span class="tag" data-status="computed">Computed</span>
+    </div>
+
+    <div id="waveBlock">
+      <p class="step-text" id="waveText"></p>
+      <div class="field">
+        <div class="field-head">
+          <label class="label" for="radius">Drop of water, radius</label>
+          <output class="label" id="radiusOut" for="radius"></output>
+        </div>
+        <input class="range" id="radius" type="range" min="0.5" max="5" step="0.1" value="1">
+      </div>
+      <div class="ratio-list" id="waveList"></div>
+      <p class="hint">Frequencies are from Rayleigh's formula for a free drop of water making small oscillations. A real drop on a surface, or one driven hard, departs from it.</p>
+    </div>
+
+    <div id="fractalBlock" hidden>
+      <dl class="pick-facts" id="fractalFacts"></dl>
+      <p class="step-text" id="fractalOdd"></p>
+    </div>
+  </section>
+
+  <!-- ================================================================ SOUND -->
+  <section class="panel ancient-sound" aria-labelledby="soundTitle">
+    <div class="panel-head"><h2 id="soundTitle">Between the three waves</h2></div>
+    <ul class="sound-list" id="betweenList"></ul>
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="volume">Sound volume</label>
+        <output class="label" id="volumeOut" for="volume">25%</output>
+      </div>
+      <input class="range" id="volume" type="range" min="0" max="100" step="1" value="25">
+      <p class="hint">For the Hear buttons on this page. Sound goes through the same limited output as the console and stops by itself after three seconds.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ BRIEF -->
+  <section class="panel ancient-brief" aria-labelledby="briefTitle">
+    <div class="panel-head"><h2 id="briefTitle">What you are looking at</h2></div>
+    <div class="prose">
+      <h3 class="label">Why there are only five</h3>
+      <p>A regular solid has the same regular polygon for every face and the same number of them at every corner. At a corner, the angles that meet must add up to less than a full turn, 360°. Otherwise the faces lie flat, or cannot close at all. Only five combinations pass:</p>
+      <table class="line-table" id="fiveTable" aria-label="Angles meeting at a corner">
+        <thead><tr><th>Faces at a corner</th><th>Angles add to</th><th>Result</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p>Euclid ended his Elements, about 300 BC, with the proof that there are no others.</p>
+      <h3 class="label">Duals</h3>
+      <p>Put a corner at the middle of each face of a solid and join them up: you get its dual. The cube and octahedron are each other's duals, as are the dodecahedron and icosahedron. The tetrahedron's dual is another tetrahedron.</p>
+      <h3 class="label">Solids and waves</h3>
+      <p>A sphere has standing waves, as a plate does. Each has a degree, and for most degrees the wave can be arranged with the full symmetry of a Platonic solid. This page shows the lowest that can for each: degree 3, 4 and 6. Watching one swing shows what a dual is. At one end of the swing the surface bulges at the corners of a solid; at the other end, at the corners of its dual. A cube and an octahedron are the two halves of one vibration.</p>
+      <p>This is why the same few symmetries turn up in crystals, viruses, drops and molecules. They are the arrangements that are possible for a round thing, whatever it is made of.</p>
+      <h3 class="label">Fractals</h3>
+      <p>A fractal is made of smaller copies of itself. If a shape is made of N copies each s times smaller, its dimension is log N ÷ log s. For a line, square or cube that gives 1, 2 or 3. For a fractal it gives something in between. Coastlines, lungs, river networks and lightning are rough fractals over a range of sizes: they branch or wrinkle the same way at each scale. The sand lines on a plate are not; they are smooth curves.</p>
+      <h3 class="label">History, kept separate from physics</h3>
+      <p>Plato, in the Timaeus about 360 BC, gave four of the solids to the elements (fire, earth, air, water) and the fifth to the cosmos. That is philosophy, and it is shown here as his assignment and nothing more. In 1596 Kepler tried to explain the spacing of the planets by nesting the five solids inside each other. It does not fit the measurements, and he later found the laws that do.</p>
+      <h3 class="label">What is not here</h3>
+      <p>Only the lowest symmetric wave is shown for each solid; higher ones exist. The fractals stop after a few steps, because every step multiplies the number of pieces. Plasma and lightning are not simulated.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · geometry · solids, waves and fractals</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/ancient.js"></script>
+<script src="js/core/solids.js"></script>
+<script src="js/audio/duo.js"></script>
+<script src="vendor/three.bundle.js"></script>
+<script src="js/ui/viewer.js"></script>
+<script src="js/ui/geometryview.js"></script>
+<script src="js/ui/geometry.js"></script>
+</body>
+</html>

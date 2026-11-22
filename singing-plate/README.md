@@ -1,11 +1,12 @@
 # Singing Plate
 
-Five tools in one app, built around a desktop Chladni plate rig:
+Six tools in one app, built around a desktop Chladni plate rig:
 
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
 - **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.
 - **Ancient forms** (`ancient.html`): six ancient structures in 3D from published dimensions, with their proportions as musical intervals and what is known about their sound.
+- **Geometry** (`geometry.html`): the five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, and two fractals.
 - **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
@@ -426,6 +427,36 @@ Sound uses the same safety chain as the console and stops after three seconds or
 
 Room modes are for an empty hard-walled box, not a survey of the real chamber. The Hypogeum in Malta and Chavín de Huántar in Peru have published acoustic studies and irregular shapes, and are not modelled.
 
+## Geometry
+
+`geometry.html` shows the five Platonic solids, the wave on a sphere that goes with each, and two fractals.
+
+### The solids
+
+Tetrahedron, cube, octahedron, dodecahedron and icosahedron, each with its faces, edges and corners, the angle between faces, its dual, and the number of ways it can be turned onto itself. Only the corners of four of them are typed in. Faces are found as the flat sides of the shape the corners enclose; edges, angles and duals follow; and the dodecahedron is built as the dual of the icosahedron. The unit tests check corners − edges + faces = 2, the textbook angles, the golden ratio in the pentagon, and that only these five pass the rule that the angles meeting at a corner must total less than 360°.
+
+Each solid also says where it turns up in nature, and gives Plato's element for it, tagged as philosophy.
+
+### The waves
+
+A sphere has standing waves numbered by a degree. The lowest that can take the full symmetry of each solid are degree 3 (tetrahedron), 4 (cube and octahedron) and 6 (dodecahedron and icosahedron). Each is the sum of simple one-axis waves along the solid's main axes; the tests check that at any lower degree those sums cancel everywhere.
+
+**Wave** shows the surface swinging. **Both** adds two wire cages: bright for the solid, faint for its dual. At one end of the swing the surface bulges at the corners of the solid; half a cycle later it bulges at the corners of the dual. A cube and an octahedron are the two halves of one vibration. **Freeze** holds the wave at the end that matches the bright cage.
+
+### The sound
+
+A slider sets the radius of a free drop of water, and each wave's frequency follows from Rayleigh's formula, `f = (1 / 2π) √(l (l − 1)(l + 2) σ / (ρ R³))`. A 1 mm drop rings at about 235, 365 and 666 Hz in the three waves. **Hear** plays each, raised by octaves when it is too low and saying so.
+
+The ratios between the three depend only on the degrees, not on the size of the drop. Degree 3 to degree 6 is exactly an octave and a half. The other two are no simple interval, and the page says so: a sphere's notes are not a musical scale.
+
+### The fractals
+
+The Sierpinski tetrahedron and the Menger sponge, with a slider for the number of steps. Each shows its number of pieces, the volume left and the change in surface, and its dimension, log N ÷ log s for N copies each s times smaller. The tetrahedron's volume halves at every step while its surface stays the same, and its dimension is exactly 2. The sponge's is about 2.73. The unit tests measure volume and surface from the meshes and compare them with the formulas.
+
+### What it leaves out
+
+Only the lowest symmetric wave for each solid. The fractals stop after a few steps. Plasma and lightning are not simulated.
+
 ## Layout
 
 ```
@@ -433,8 +464,9 @@ index.html          the console
 lab.html            the 3D lab
 fields.html         field lines, the rotating field, the resonance curve
 ancient.html        ancient structures: shape, proportion, sound
+geometry.html       Platonic solids, their waves, fractals
 line.html           the line test
-css/styles.css      theme and layout for all five
+css/styles.css      theme and layout for all six
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
 vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
@@ -452,6 +484,8 @@ js/core/            pure logic, no browser APIs: unit tested
                       coupled circuits
   ancient.js          six structures: shapes, ratios, room modes, statements
                       about sound with their status
+  solids.js           Platonic solids from their corners, symmetric waves on a
+                      sphere, drop frequencies, two fractals
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
@@ -459,9 +493,9 @@ js/audio/duo.js     two tones a hair apart, for the line test
 js/audio/strike.js  plays one prepared burst, for the fields page
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
 js/ui/              app.js wires the console, lab.js the lab, fields.js the fields page,
-                    ancient.js the ancient forms page, line.js the line test; dial,
-                    plate view, 3D viewer, field view and ancient view are the parts
-                    they use
+                    ancient.js the ancient forms page, geometry.js the geometry page,
+                    line.js the line test; dial, plate view, 3D viewer, field view,
+                    ancient view and geometry view are the parts they use
 tests/              unit tests for js/core
 tools/              entry file for rebuilding the Three.js bundle
 docs/               mission brief
