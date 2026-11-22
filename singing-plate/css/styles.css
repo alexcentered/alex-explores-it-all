@@ -903,8 +903,14 @@ a.entry-photo-link { display: block; border-radius: 9px; }
   .ancient-brief .prose h3 { margin: 14px 0 10px; break-after: avoid; }
 }
 
-@media (max-width: 520px) {
-  .tabs { max-width: 100%; }
+.geometry-grid .ancient-pick > .label { margin-bottom: -8px; }
+.ratio-card[data-current="true"] { border-color: var(--line-strong); background: var(--glass-raised); }
+.geometry-grid .sound-item .btn { min-height: 30px; padding: 4px 14px; }
+.geometry-grid .line-table { margin: 4px 0 10px; break-inside: avoid; }
+.geometry-grid .line-table th, .geometry-grid .line-table td { white-space: normal; padding-right: 10px; }
+
+@media (max-width: 620px) {
+  .tabs { max-width: 100%; flex-wrap: wrap; justify-content: center; }
   .tabs a { padding: 6px 8px; letter-spacing: 0.06em; }
 }
 
