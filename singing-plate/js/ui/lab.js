@@ -93,6 +93,9 @@
 
     var s = readJson(LAB_KEY);
     if (SHAPES.indexOf(s.shape) !== -1) state.shape = s.shape;
+    // a link such as lab.html#torus opens that shape
+    var linked = (root.location.hash || '').slice(1);
+    if (SHAPES.indexOf(linked) !== -1) state.shape = linked;
     if (s.disc) state.disc = disc.sanitizeMode(s.disc.n, s.disc.s);
     if (s.source === 'freq' || s.source === 'mode') state.source = s.source;
     if (s.freq !== undefined) state.freq = F.sanitize(s.freq, state.freq);
