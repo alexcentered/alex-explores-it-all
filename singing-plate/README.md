@@ -6,7 +6,7 @@ Six tools in one app, built around a desktop Chladni plate rig:
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
 - **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.
 - **Ancient forms** (`ancient.html`): six ancient structures in 3D from published dimensions, with their proportions as musical intervals and what is known about their sound.
-- **Geometry** (`geometry.html`): the five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, and two fractals.
+- **Geometry** (`geometry.html`): the five Platonic solids in 3D, the standing waves on a sphere that share their symmetry, two fractals, and a spark that grows the way lightning does.
 - **Line test** (`line.html`): a recreation of the line-flattening exercise from Dan Sherman's account, built as a fair test against chance.
 
 The hardware plan and parts list are in [docs/MISSION_BRIEF.md](docs/MISSION_BRIEF.md).
@@ -429,7 +429,7 @@ Room modes are for an empty hard-walled box, not a survey of the real chamber. T
 
 ## Geometry
 
-`geometry.html` shows the five Platonic solids, the wave on a sphere that goes with each, and two fractals.
+`geometry.html` shows the five Platonic solids, the wave on a sphere that goes with each, two fractals, and a spark that grows itself.
 
 ### The solids
 
@@ -453,9 +453,26 @@ The ratios between the three depend only on the degrees, not on the size of the 
 
 The Sierpinski tetrahedron and the Menger sponge, with a slider for the number of steps. Each shows its number of pieces, the volume left and the change in surface, and its dimension, log N ÷ log s for N copies each s times smaller. The tetrahedron's volume halves at every step while its surface stays the same, and its dimension is exactly 2. The sponge's is about 2.73. The unit tests measure volume and surface from the meshes and compare them with the formulas.
 
+### The spark
+
+A third fractal, **Spark**, is grown where the other two are drawn. It is the dielectric breakdown model of Niemeyer, Pietronero and Wiesmann (1984), on a flat 121 × 121 grid:
+
+1. The discharge is held at voltage 0 and an electrode at voltage 1. Between them the voltage at each empty cell is the average of its neighbours (Laplace's equation).
+2. Every empty cell touching the discharge may be next, with a chance in proportion to (its voltage) ^ η.
+3. One is chosen by chance and joins. The voltage is worked out again, and the cycle repeats.
+
+Nothing in the rule mentions branching. A sharp tip concentrates the field and so tends to grow, while the gaps between tips are shielded. Lightning, Tesla coil streamers and Lichtenberg figures form this way.
+
+- **Where it starts:** from a point inside a ring electrode, or from the top edge above a flat one (cloud to ground).
+- **How closely it follows the field** sets η from 0 to 4. At 0 it ignores the field and grows a solid blob; at 1 it is the standard model; higher values give fewer, longer branches.
+- **Grow another** grows a new one. No two are alike.
+- Lines carrying more of the pattern beyond them are drawn stronger, as the trunk of a real discharge carries more current.
+
+The page measures each spark's dimension as it grows, by counting cells within each distance of the start. Grown from a point at η = 1, the unit tests' average over four sparks is within 0.12 of the published value of about 1.7, and η = 0 gives 2. The measure is rougher for a spark that starts at an edge, and the page says so.
+
 ### What it leaves out
 
-Only the lowest symmetric wave for each solid. The fractals stop after a few steps. Plasma and lightning are not simulated.
+Only the lowest symmetric wave for each solid. The fractals stop after a few steps. The spark is flat and idealised: real lightning is three-dimensional, and its heating, stepped leaders and return strokes are not modelled.
 
 ## Layout
 
@@ -486,6 +503,7 @@ js/core/            pure logic, no browser APIs: unit tested
                       about sound with their status
   solids.js           Platonic solids from their corners, symmetric waves on a
                       sphere, drop frequencies, two fractals
+  growth.js           a spark grown from the electric field (dielectric breakdown)
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
