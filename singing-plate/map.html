@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Singing Plate | Map</title>
+<meta name="description" content="The few ideas that recur across Singing Plate, where to see each one, and how size sets pitch for a string, a room, a plate, a drop and a circuit.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#060607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23060607'/%3E%3Cpath d='M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0' fill='none' stroke='%23f2f2f2' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  try {
+    var t = JSON.parse(localStorage.getItem('singing-plate:v1') || '{}').theme;
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="29" rx="7"/><path d="M6 16c3.3-9 6.7-9 10 0s6.700 9 10 0"/></svg>
+    <div>
+      <h1>Singing Plate</h1>
+      <p class="label">Map</p>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <a href="map.html" aria-current="page">Map</a>
+    <a href="index.html">Console</a>
+    <a href="lab.html">3D lab</a>
+    <a href="fields.html">Fields</a>
+    <a href="ancient.html">Ancient</a>
+    <a href="geometry.html">Geometry</a>
+    <a href="line.html">Line test</a>
+  </nav>
+  <div class="topbar-tools">
+    <button class="btn ghost" id="themeBtn" type="button" aria-label="Switch to light theme">Light</button>
+  </div>
+</header>
+
+<main class="map-grid">
+
+  <!-- ================================================================ START -->
+  <section class="panel" aria-labelledby="startTitle">
+    <div class="panel-head"><h2 id="startTitle">Start here</h2></div>
+    <p class="map-lead">Six pages, one subject: things that can ring, and the patterns they make when they do. A handful of ideas explain nearly everything on them. This page names those ideas and points to where each can be seen.</p>
+    <div class="map-pages">
+      <a class="map-page" href="index.html"><span class="pick-name">Console</span><span class="pick-place">Make a tone, drive a plate, see where the sand goes.</span></a>
+      <a class="map-page" href="lab.html"><span class="pick-name">3D lab</span><span class="pick-place">Standing waves as solid forms: plate, disc, sphere, room, torus.</span></a>
+      <a class="map-page" href="fields.html"><span class="pick-name">Fields</span><span class="pick-place">Magnetic field lines, the rotating field, resonance, coupled circuits.</span></a>
+      <a class="map-page" href="ancient.html"><span class="pick-name">Ancient</span><span class="pick-place">Six structures: how they were built, their proportions, their sound.</span></a>
+      <a class="map-page" href="geometry.html"><span class="pick-name">Geometry</span><span class="pick-place">The five regular solids, their waves, fractals, a spark.</span></a>
+      <a class="map-page" href="line.html"><span class="pick-name">Line test</span><span class="pick-place">A fair test of one claim, against chance.</span></a>
+    </div>
+  </section>
+
+  <!-- ================================================================= SIZE -->
+  <section class="panel" aria-labelledby="sizeTitle">
+    <div class="panel-head">
+      <h2 id="sizeTitle">One knob: size</h2>
+      <span class="label" id="sizeState"></span>
+    </div>
+    <p class="map-lead">Make a thing bigger and its note falls, because a wave has to cross it and come back. How fast it falls depends on what carries the wave. Move the slider and compare.</p>
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="size">Size</label>
+        <output class="label" id="sizeOut" for="size"></output>
+      </div>
+      <input class="range centred" id="size" type="range" min="-200" max="200" step="1" value="100">
+      <div class="btn-row tight">
+        <button class="btn step" id="sizeHalf" type="button">Half</button>
+        <button class="btn step" id="sizeSame" type="button">Same</button>
+        <button class="btn step" id="sizeDouble" type="button">Double</button>
+      </div>
+    </div>
+    <div class="size-list" id="sizeList"></div>
+    <div class="field">
+      <div class="field-head">
+        <label class="label" for="volume">Sound volume</label>
+        <output class="label" id="volumeOut" for="volume">25%</output>
+      </div>
+      <input class="range" id="volume" type="range" min="0" max="100" step="1" value="25">
+      <p class="hint">Hear plays the note at the example size, then the note at the new size, through the same limited output as the console.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ IDEAS -->
+  <section class="panel" aria-labelledby="ideasTitle">
+    <div class="panel-head"><h2 id="ideasTitle">The ideas that recur</h2></div>
+    <ol class="idea-list">
+      <li class="idea">
+        <h3>Only whole numbers of waves fit</h3>
+        <p>Anything with edges, or that closes on itself, can only hold waves that fit it exactly. That is why a plate has particular notes and not others, and why each note draws its own pattern.</p>
+        <div class="idea-links"><a href="index.html">A plate</a><a href="lab.html#sphere">A sphere</a><a href="lab.html#torus">A torus</a><a href="ancient.html#kings-chamber">A stone room</a></div>
+      </li>
+      <li class="idea">
+        <h3>Size sets the pitch</h3>
+        <p>Bigger is lower, by a rule that depends on what carries the wave. The knob above compares seven cases.</p>
+        <div class="idea-links"><a href="#sizeTitle">The size knob</a><a href="index.html">Plate setup</a><a href="geometry.html#cube">A drop of water</a></div>
+      </li>
+      <li class="idea">
+        <h3>Simple ratios sound simple</h3>
+        <p>Two notes whose frequencies are 2 to 1, 3 to 2 or 4 to 3 blend. The same ratios between lengths are the oldest rules of proportion in building. The arithmetic is shared; whether a builder meant it as music has to be shown case by case.</p>
+        <div class="idea-links"><a href="index.html#math">Intervals</a><a href="ancient.html#kings-chamber">King's Chamber</a><a href="ancient.html#parthenon">Parthenon</a></div>
+      </li>
+      <li class="idea">
+        <h3>Push in time and it builds</h3>
+        <p>Drive something at its own note and each push adds to the last. How far it builds, and how long it rings afterwards, is one number, Q. Every sand pattern is a resonance, and so is every tuned circuit.</p>
+        <div class="idea-links"><a href="fields.html#resTitle">Resonance curve</a><a href="index.html">Sweep for patterns</a></div>
+      </li>
+      <li class="idea">
+        <h3>Two that share become one system</h3>
+        <p>Let two matched resonators share a little of their field and they stop acting alone. Energy passes from one to the other and back, and their single note splits in two. This is the heart of a Tesla coil.</p>
+        <div class="idea-links"><a href="fields.html#pairTitle">Two tuned circuits</a></div>
+      </li>
+      <li class="idea">
+        <h3>Symmetry decides the pattern</h3>
+        <p>A square plate and a round one, driven at the same note, draw different figures, because the pattern must share the symmetry of the thing. For a sphere the possible symmetries are those of the five regular solids, which is why they turn up in crystals, viruses and drops.</p>
+        <div class="idea-links"><a href="index.html">Square and round plates</a><a href="geometry.html#cube">Solids and their waves</a></div>
+      </li>
+      <li class="idea">
+        <h3>A field has a shape, and sharp points concentrate it</h3>
+        <p>Magnetic field lines never start or end; they loop. Coils set at angles make a field that turns. And where a conductor comes to a point the electric field is strongest, which is why a spark advances from its tips and branches.</p>
+        <div class="idea-links"><a href="fields.html#linesTitle">Field lines</a><a href="fields.html#turnTitle">Rotating field</a><a href="geometry.html#spark">A spark</a></div>
+      </li>
+      <li class="idea">
+        <h3>Some shapes repeat at every scale</h3>
+        <p>A fractal is made of smaller copies of itself, exactly or on average. Lightning, lungs and coastlines are rough fractals. Most patterns here are not: sand lines on a plate are smooth curves.</p>
+        <div class="idea-links"><a href="geometry.html#sierpinski">Sierpinski tetrahedron</a><a href="geometry.html#menger">Menger sponge</a><a href="geometry.html#spark">A spark</a></div>
+      </li>
+      <li class="idea">
+        <h3>An octave is a doubling, anywhere</h3>
+        <p>Doubling a frequency is the same step for sound, radio and light. Raise a tone by about forty octaves and the number you reach is a frequency of visible light. That is a way of labelling notes with colours. It does not mean the sound and the light are the same thing: one is moving air, the other an electromagnetic wave.</p>
+        <div class="idea-links"><a href="index.html#math">Relationships</a><a href="index.html">Colour toggle</a></div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ================================================================ HOLDS -->
+  <section class="panel" aria-labelledby="holdsTitle">
+    <div class="panel-head"><h2 id="holdsTitle">What holds, and what does not</h2></div>
+    <div class="holds">
+      <div>
+        <h3 class="label"><span class="tag" data-status="measured">Holds</span></h3>
+        <ul class="holds-list">
+          <li>The nine ideas above. Each is standard physics or mathematics, and the unit tests check the app's numbers against known results.</li>
+          <li>The King's Chamber is a 3-4-5 room in whole cubits.</li>
+          <li>Neolithic stone chambers resonate near 110 Hz (measured, 1996).</li>
+          <li>A complete Stonehenge would have reverberated for about 0.6 s (scale model, 2020).</li>
+          <li>A spark grown by the field alone has a dimension near 1.7, as published.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="label"><span class="tag" data-status="computed">Open</span></h3>
+        <ul class="holds-list">
+          <li>Whether any ancient builder tuned a room on purpose. A chamber that size resonates near a low voice whatever the intent.</li>
+          <li>Whether the King's Chamber's proportions were meant as music. No text says so.</li>
+          <li>How the heaviest stones were lifted, at every site here but the Parthenon.</li>
+          <li>The age of the Osireion, which a minority dispute.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="label"><span class="tag" data-status="claimed">Not supported</span></h3>
+        <ul class="holds-list">
+          <li>That a pyramid or temple was a power plant or energy device. No measurement supports it.</li>
+          <li>That particular frequencies heal, or that a chamber was tuned to one.</li>
+          <li>That a given frequency reaches non-human intelligences. The app lists such claims as claims, and gives no frequency for any of them.</li>
+          <li>Torus-shaped energy fields round the body, or free energy from a torus.</li>
+          <li>Plato's matching of solids to elements, as physics.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="hint">"Not supported" means no measurement was found, not that the question is closed. The Line test page exists because one such claim can be tested fairly at home.</p>
+  </section>
+</main>
+
+<footer class="foot label">Operation Singing Plate · map · where each idea can be seen</footer>
+
+<script src="js/core/freq.js"></script>
+<script src="js/core/safety.js"></script>
+<script src="js/core/scale.js"></script>
+<script src="js/audio/duo.js"></script>
+<script src="js/ui/map.js"></script>
+</body>
+</html>

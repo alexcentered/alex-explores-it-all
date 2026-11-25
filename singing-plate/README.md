@@ -1,7 +1,8 @@
 # Singing Plate
 
-Six tools in one app, built around a desktop Chladni plate rig:
+Six tools and a map in one app, built around a desktop Chladni plate rig:
 
+- **Map** (`map.html`): the few ideas that recur across the other pages, where to see each, and how size sets pitch.
 - **Console** (`index.html`): sends a pure tone to an amplifier and vibration driver. A metal plate bolted to the driver resonates, and sand on the plate collects along the lines that stay still. The console is the signal source, the sweep controller, the logbook and a simulator of what the sand should do.
 - **3D lab** (`lab.html`): pick a frequency, see the 3D form its standing wave would make, and export it as an STL for printing.
 - **Fields** (`fields.html`): magnetic field lines round a ring and a toroidal coil, the rotating field of Tesla's motor, the resonance curve, and the coupled circuits of a Tesla coil.
@@ -474,16 +475,30 @@ The page measures each spark's dimension as it grows, by counting cells within e
 
 Only the lowest symmetric wave for each solid. The fractals stop after a few steps. The spark is flat and idealised: real lightning is three-dimensional, and its heating, stepped leaders and return strokes are not modelled.
 
+## The map
+
+`map.html` is the place to start. It has four parts.
+
+- **Start here:** a card for each of the six pages.
+- **One knob: size.** A slider from a quarter to four times, and seven things side by side: a string, the air in a stone room, a plate cut from the same sheet, a plate scaled like a model, a drop of water, a tuned circuit, and the gap between the ground and the sky. Each shows its note at the example size and at the new size, how many octaves it moved, and the rule it follows. A string, a room, a circuit and a planet go as 1 ÷ size. A plate from the same sheet goes as 1 ÷ size², so doubling it drops two octaves. A drop of water goes as 1 ÷ size^1.5. **Hear** plays the two notes one after the other, moved by whole octaves when they are out of hearing, and says so.
+- **The ideas that recur:** nine short statements, each with links to where it can be seen. Whole numbers of waves, size and pitch, simple ratios, resonance, coupling, symmetry, the shape of fields, self-similarity, and octaves.
+- **What holds, and what does not:** three lists. What is standard physics or measured; what is open; and what is widely said without a measurement behind it.
+
+The seven rules are not typed in on trust. The unit tests compute each thing at the example size and at double size from the module that models it (the plate, room, drop and circuit code) and check both the starting frequency and the power of size.
+
+Links into the other pages open the right item: `lab.html#torus`, `ancient.html#kings-chamber`, `geometry.html#spark`, `fields.html#pairTitle`.
+
 ## Layout
 
 ```
+map.html            where to start: the recurring ideas, and size against pitch
 index.html          the console
 lab.html            the 3D lab
 fields.html         field lines, the rotating field, the resonance curve
 ancient.html        ancient structures: shape, proportion, sound
 geometry.html       Platonic solids, their waves, fractals
 line.html           the line test
-css/styles.css      theme and layout for all six
+css/styles.css      theme and layout for all seven
 fonts/              JetBrains Mono (SIL Open Font License, see fonts/OFL.txt)
 vendor/             Three.js as one local script (MIT, see vendor/THREE-LICENSE.txt)
 js/core/            pure logic, no browser APIs: unit tested
@@ -504,6 +519,7 @@ js/core/            pure logic, no browser APIs: unit tested
   solids.js           Platonic solids from their corners, symmetric waves on a
                       sphere, drop frequencies, two fractals
   growth.js           a spark grown from the electric field (dielectric breakdown)
+  scale.js            how the note of seven things changes with their size
   forms.js            sphere and room standing waves
   mesh.js             solid builders, isosurface, printability inspection, STL
 js/audio/engine.js  Web Audio signal chain, shared by the console and the lab
@@ -512,7 +528,7 @@ js/audio/strike.js  plays one prepared burst, for the fields page
 js/store/presets.js pattern log storage (IndexedDB), shared by both pages
 js/ui/              app.js wires the console, lab.js the lab, fields.js the fields page,
                     ancient.js the ancient forms page, geometry.js the geometry page,
-                    line.js the line test; dial, plate view, 3D viewer, field view,
+                    map.js the map, line.js the line test; dial, plate view, 3D viewer, field view,
                     ancient view and geometry view are the parts they use
 tests/              unit tests for js/core
 tools/              entry file for rebuilding the Three.js bundle
